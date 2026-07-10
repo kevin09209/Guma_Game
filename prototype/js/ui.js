@@ -25,7 +25,7 @@ export function fitStage() {
 export const rarityBadge = (card, extraClass = "") =>
   `<span class="card-rarity rarity-${esc(card.rarity)} ${extraClass}">${esc(card.rarity)}</span>`;
 
-function pulseStage(className, duration = 320) {
+function pulseStage(className, duration = 220) {
   const stage = $("stage");
   if (!stage) return;
   stage.classList.remove(className);
@@ -38,7 +38,7 @@ function playCardPickFeedback(btn, cardId, onClick) {
   const group = btn.closest(".hand") || btn.parentElement;
   const cards = group ? Array.from(group.querySelectorAll(".card")) : [btn];
 
-  pulseStage("card-pick-flash", 320);
+  pulseStage("card-pick-flash", 220);
 
   cards.forEach((cardButton) => {
     cardButton.disabled = true;
@@ -52,10 +52,10 @@ function playCardPickFeedback(btn, cardId, onClick) {
   window.setTimeout(() => {
     overlay?.classList.remove("card-pick-freeze");
     onClick(cardId);
-  }, 260);
+  }, 110);
 }
 
-// 建立一張可點擊的卡片按鈕（手牌、補救、汰換共用）
+// 建立一張可點擊的卡片按鈕（手牌、補救、緊急救援共用）
 export function buildCardButton(cardId, onClick) {
   const card = getCard(cardId);
   const btn = document.createElement("button");
