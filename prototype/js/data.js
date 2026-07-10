@@ -10,12 +10,35 @@ export const DATA = { cards: [], heroines: [], scenes: [], endings: [], start: "
 // 資料裡的資源路徑（assets/...）是從專案根目錄算的；頁面在 prototype/ 下
 export const assetPath = (p) => "../" + p;
 
+async function fetchOptionalJson(path, fallback) {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) return fallback;
+    return await response.json();
+  } catch {
+    return fallback;
+  }
+}
+
+function mergePhase2CardResults(phase2) {
+  const sceneResults = phase2?.scene_card_results || {};
+  DATA.scenes.forEach((scene) => {
+    const extra = sceneResults[scene.scene_id];
+    if (!extra) return;
+    scene.card_results = {
+      ...(scene.card_results || {}),
+      ...extra,
+    };
+  });
+}
+
 export async function loadData() {
-  const [cards, heroines, scenes, endings] = await Promise.all([
+  const [cards, heroines, scenes, endings, phase2] = await Promise.all([
     fetch("../data/cards.json").then((r) => r.json()),
     fetch("../data/heroines.json").then((r) => r.json()),
     fetch("../data/scenes.json").then((r) => r.json()),
     fetch("../data/endings.json").then((r) => r.json()),
+    fetchOptionalJson("../data/scene_card_results_phase2.json", {}),
   ]);
   DATA.cards = cards.cards;
   DATA.heroines = heroines.heroines;
@@ -23,6 +46,7 @@ export async function loadData() {
   DATA.start = scenes.start;
   DATA.repeatReactions = scenes.repeat_reactions || {};
   DATA.endings = endings.endings;
+  mergePhase2CardResults(phase2);
 }
 
 export const getCard = (id) => DATA.cards.find((c) => c.id === id);
