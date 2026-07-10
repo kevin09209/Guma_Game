@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <!-- 公司茶水間：午後暖色調 -->
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2e6d0"/>
+      <stop offset="1" stop-color="#e3d0b4"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b99c78"/>
+      <stop offset="1" stop-color="#9a7d5c"/>
+    </linearGradient>
+    <linearGradient id="counter" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f6f4e"/>
+      <stop offset="1" stop-color="#75593c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 牆與地板 -->
+  <rect width="1600" height="620" fill="url(#wall)"/>
+  <rect y="620" width="1600" height="280" fill="url(#floor)"/>
+
+  <!-- 窗戶與午後陽光 -->
+  <rect x="1150" y="90" width="330" height="360" rx="10" fill="#bfd9e8"/>
+  <rect x="1150" y="90" width="330" height="360" rx="10" fill="none" stroke="#fff" stroke-width="14"/>
+  <line x1="1315" y1="98" x2="1315" y2="442" stroke="#fff" stroke-width="10"/>
+  <line x1="1158" y1="270" x2="1472" y2="270" stroke="#fff" stroke-width="10"/>
+  <polygon points="1150,450 1480,450 1280,900 950,900" fill="#ffe9b8" opacity="0.28"/>
+
+  <!-- 上方吊櫃 -->
+  <rect x="80" y="80" width="560" height="180" rx="8" fill="#d8c3a3"/>
+  <rect x="100" y="100" width="250" height="140" rx="6" fill="#c9b18c"/>
+  <rect x="370" y="100" width="250" height="140" rx="6" fill="#c9b18c"/>
+  <circle cx="330" cy="170" r="8" fill="#8f6f4e"/>
+  <circle cx="390" cy="170" r="8" fill="#8f6f4e"/>
+
+  <!-- 流理台 -->
+  <rect x="40" y="480" width="740" height="34" rx="8" fill="#efe8db"/>
+  <rect x="40" y="514" width="740" height="200" fill="url(#counter)"/>
+  <rect x="70" y="545" width="200" height="140" rx="6" fill="#654a30"/>
+  <rect x="290" y="545" width="200" height="140" rx="6" fill="#654a30"/>
+  <rect x="510" y="545" width="240" height="140" rx="6" fill="#654a30"/>
+  <circle cx="170" cy="615" r="9" fill="#c9b18c"/>
+  <circle cx="390" cy="615" r="9" fill="#c9b18c"/>
+
+  <!-- 水槽與水龍頭 -->
+  <rect x="300" y="470" width="180" height="14" rx="6" fill="#b9c0c6"/>
+  <path d="M 380 470 v -50 q 0 -22 26 -22 h 30" fill="none" stroke="#aab2b9" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- 咖啡機 -->
+  <rect x="560" y="360" width="150" height="122" rx="10" fill="#3a3f47"/>
+  <rect x="580" y="380" width="110" height="34" rx="6" fill="#20242a"/>
+  <rect x="606" y="414" width="58" height="30" fill="#20242a"/>
+  <rect x="616" y="452" width="38" height="10" rx="4" fill="#d8d8d8"/>
+  <circle cx="686" cy="398" r="7" fill="#e8654f"/>
+
+  <!-- 馬克杯們 -->
+  <rect x="120" y="440" width="46" height="42" rx="8" fill="#e8654f"/>
+  <rect x="180" y="446" width="42" height="36" rx="8" fill="#5a8fb8"/>
+  <rect x="240" y="442" width="44" height="40" rx="8" fill="#79a86d"/>
+
+  <!-- 打翻的咖啡（本次事件的兇案現場） -->
+  <ellipse cx="520" cy="500" rx="90" ry="12" fill="#5a3a1e" opacity="0.75"/>
+  <ellipse cx="600" cy="512" rx="40" ry="8" fill="#5a3a1e" opacity="0.6"/>
+  <path d="M 470 490 q 20 -34 44 -10 l -8 14 z" fill="#efe8db"/>
+
+  <!-- 冰箱 -->
+  <rect x="880" y="240" width="200" height="470" rx="14" fill="#dfe4e8"/>
+  <rect x="880" y="240" width="200" height="180" rx="14" fill="#eef1f4"/>
+  <rect x="1042" y="300" width="12" height="80" rx="6" fill="#aab2b9"/>
+  <rect x="1042" y="460" width="12" height="110" rx="6" fill="#aab2b9"/>
+</svg>

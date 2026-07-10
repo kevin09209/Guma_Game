@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Gumayuwei 搞笑戀愛模擬器</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 手機直拿時的轉向提醒（CSS 判斷直式才顯示） -->
+  <div id="rotate-hint">
+    <div class="rotate-icon">📱↻</div>
+    <p>把手機轉成<b>橫向</b>，體驗最佳！</p>
+    <p class="rotate-sub">（直向也能玩，只是畫面會比較小）</p>
+  </div>
+
+  <!-- 視窗容器：負責把 16:9 的舞台置中、縮放到適配螢幕 -->
+  <div id="viewport">
+    <!-- 舞台：固定 1280x720 的遊戲畫面，所有東西都畫在這裡面 -->
+    <div id="stage">
+
+      <!-- 圖層 1：場景背景 -->
+      <img id="bg" class="bg" src="" alt="" />
+
+      <!-- 圖層 2：角色立繪（左：Gumayuwei，右：女主角） -->
+      <div id="sprite-guma" class="sprite sprite-left">
+        <div class="emotion-badge hidden"></div>
+        <img src="../assets/characters/gumayuwei.svg" alt="Gumayuwei" />
+      </div>
+      <div id="sprite-heroine" class="sprite sprite-right">
+        <div class="emotion-badge hidden"></div>
+        <img src="../assets/characters/heroine_a.svg" alt="女主角" />
+      </div>
+
+      <!-- 圖層 3：上方資訊列（場景名＋六個數值） -->
+      <header id="topbar" class="topbar hidden">
+        <span id="hud-location" class="hud-location"></span>
+        <div id="hud-stats" class="hud-stats"></div>
+      </header>
+
+      <!-- 圖層 4：對話框（galgame 核心：下方文字框，點擊推進） -->
+      <div id="dialog" class="dialog hidden">
+        <div id="nameplate" class="nameplate"></div>
+        <p id="dialog-text" class="dialog-text"></p>
+        <span id="advance-hint" class="advance-hint">▼</span>
+      </div>
+
+      <!-- 圖層 5：手牌選單（劇情節點才彈出） -->
+      <div id="hand-overlay" class="hand-overlay hidden">
+        <p class="hand-hint">－ 選擇一張道具卡，操控 Gumayuwei 的反應 －</p>
+        <div id="hand" class="hand"></div>
+      </div>
+
+      <!-- 圖層 6：出牌特寫演出（全螢幕 cut-in） -->
+      <div id="cutin" class="cutin hidden">
+        <div class="cutin-speedlines"></div>
+        <div id="cutin-card" class="cutin-card"></div>
+        <div class="cutin-info">
+          <div id="cutin-name" class="cutin-name"></div>
+          <div id="cutin-line" class="cutin-line"></div>
+          <div id="cutin-effects" class="cutin-effects"></div>
+          <div class="cutin-continue">點擊繼續 ▶</div>
+        </div>
+      </div>
+
+      <!-- 圖層 7：開始畫面 -->
+      <div id="screen-start" class="fullscreen-overlay">
+        <p class="start-tag">搞笑戀愛模擬器</p>
+        <h1 class="start-title">Gumayuwei 約會模擬器</h1>
+        <p class="start-subtitle">— 公司茶水間篇 —</p>
+        <p class="start-desc">
+          你是 Gumayuwei，一位在台北上班、看起來厭世但意外有迷因魅力的普通男子。<br />
+          面對理性吐槽系同事，你唯一的武器是——手上的道具卡。
+        </p>
+        <button id="btn-start" class="btn">▶ 開始上班</button>
+      </div>
+
+      <!-- 圖層 8：結局畫面 -->
+      <div id="screen-ending" class="fullscreen-overlay hidden">
+        <p class="start-tag">— 結局 —</p>
+        <h1 id="ending-title" class="ending-title"></h1>
+        <p id="ending-text" class="ending-text"></p>
+        <div id="ending-stats" class="ending-stats"></div>
+        <button id="btn-restart" class="btn">↻ 再來一次</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
