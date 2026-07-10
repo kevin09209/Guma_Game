@@ -1,0 +1,125 @@
+{
+  "_comment": "事件資料。events 依序進行。每個事件的 choices 對應可用卡片：narration 是使用卡片後的演出描述，reaction 是女主角的反應台詞，effects 是這次選擇造成的數值變化（會覆寫卡片的基礎效果）。",
+  "events": [
+    {
+      "event_id": "event_001",
+      "title": "茶水間巧遇",
+      "location": "公司茶水間",
+      "heroine": "heroine_001",
+      "intro": "下午三點，你到茶水間泡咖啡提神。手一滑，整杯咖啡打翻在流理台上，濺得到處都是。這時，理性吐槽系同事——林知夏，正好端著馬克杯走進來。",
+      "heroine_line": "……你連泡咖啡都能翻車？這也算是一種才能吧。",
+      "choices": [
+        {
+          "card": "card_001",
+          "narration": "Gumayuwei 皺眉歪頭，周圍浮現大量問號，彷彿打翻咖啡的是別人。",
+          "reaction": "「你那是什麼表情？犯人就是你欸。」她翻了個白眼，但嘴角明顯在憋笑。",
+          "effects": { "favorability": 5, "awkwardness": -2, "comedy": 8, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        },
+        {
+          "card": "card_002",
+          "narration": "Gumayuwei 雙手交叉，看著滿桌咖啡，淡淡地說：「不急。」然後才慢條斯理地去拿抹布。",
+          "reaction": "「你是在冷靜什麼？咖啡都流到插座旁邊了！」她嘴上吐槽，心裡卻覺得這人心態意外地穩。",
+          "effects": { "favorability": 6, "awkwardness": -3, "comedy": 5, "sincerity": 0, "confidence": 10, "social_death": 0 }
+        },
+        {
+          "card": "card_003",
+          "narration": "Gumayuwei 看著咖啡流走，突然張開雙手崩潰大喊：「我還沒上車啊！」聲音大到隔壁部門都聽見了。",
+          "reaction": "「跟上車有什麼關係！」整個茶水間的人都探頭進來看，她一邊笑一邊假裝不認識你。",
+          "effects": { "favorability": 3, "awkwardness": 0, "comedy": 12, "sincerity": 0, "confidence": 0, "social_death": 10 }
+        },
+        {
+          "card": "card_004",
+          "narration": "Gumayuwei 看了看空掉的咖啡杯，又看了看咖啡機，認真地問：「還有嗎？」",
+          "reaction": "「重點是地板吧？！你先擦地板！」她傻眼，但默默把自己的咖啡分了你半杯。",
+          "effects": { "favorability": 2, "awkwardness": 5, "comedy": 8, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        },
+        {
+          "card": "card_005",
+          "narration": "Gumayuwei 當場石化，變成一尊面向流理台的摩艾石像，表情凝重而深遠。",
+          "reaction": "「……你當機了嗎？」她盯著你三秒，嘆了口氣，拿起抹布幫你擦。「欠我一次。」",
+          "effects": { "favorability": 8, "awkwardness": -5, "comedy": 4, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        }
+      ]
+    },
+    {
+      "event_id": "event_002",
+      "title": "下班邀約",
+      "location": "公司電梯口",
+      "heroine": "heroine_001",
+      "intro": "傍晚六點，你在電梯口又遇到林知夏。電梯還在十二樓慢慢往下爬。她看了你一眼，難得主動開口。",
+      "heroine_line": "你等下要幹嘛？該不會又是回家躺著吧。",
+      "choices": [
+        {
+          "card": "card_001",
+          "narration": "Gumayuwei 歪頭：「？？？」大腦當機，完全沒意識到這可能是個邀約的機會。",
+          "reaction": "「……當我沒問。」電梯到了，她走進去，留下一臉問號的你。錯過時機了。",
+          "effects": { "favorability": 1, "awkwardness": 8, "comedy": 5, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        },
+        {
+          "card": "card_002",
+          "narration": "Gumayuwei 雙手交叉，露出神秘微笑：「不急。……妳呢？」把問題丟回去。",
+          "reaction": "「我問你欸？」她挑眉，但沒有走開的意思。「……好啦，要不要一起吃個飯？」",
+          "effects": { "favorability": 5, "awkwardness": 0, "comedy": 5, "sincerity": 0, "confidence": 10, "social_death": 0 }
+        },
+        {
+          "card": "card_003",
+          "narration": "電梯門打開，她先走了進去。門開始關上的瞬間，Gumayuwei 大喊：「我還沒上車啊！」用手刀劈開電梯門。",
+          "reaction": "電梯裡還有三個別部門的同事。所有人都盯著你。她把臉埋進手心：「拜託你正常一點……」但憋笑憋到肩膀在抖。",
+          "effects": { "favorability": 2, "awkwardness": 0, "comedy": 10, "sincerity": 0, "confidence": 0, "social_death": 12 }
+        },
+        {
+          "card": "card_004",
+          "narration": "Gumayuwei 認真地說：「我要去吃紅豆湯圓。名額還有一個——還有嗎？我是說，妳要來嗎？」",
+          "reaction": "「什麼叫名額還有一個，你是在辦活動嗎？」她笑出聲。「……好啊，我要加芋圓。」邀約意外成功了。",
+          "effects": { "favorability": 10, "awkwardness": 0, "comedy": 8, "sincerity": 8, "confidence": 0, "social_death": 0 }
+        },
+        {
+          "card": "card_005",
+          "narration": "Gumayuwei 陷入沉默，緩緩石化成摩艾。電梯到了又走，走了又到。",
+          "reaction": "「……算了，看你這樣我也不放心。要一起吃飯嗎？我知道附近有間不錯的。」她主動打破沉默。",
+          "effects": { "favorability": 6, "awkwardness": 3, "comedy": 4, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        }
+      ]
+    },
+    {
+      "event_id": "event_003",
+      "title": "臨時加班危機",
+      "location": "辦公室",
+      "heroine": "heroine_001",
+      "intro": "你們正準備一起走出辦公室，主管突然從會議室探出頭來：「Gumayuwei！這份報表客戶臨時要，今天要給！」晚餐計畫岌岌可危。林知夏站在旁邊，看你怎麼反應。",
+      "heroine_line": "（她抱著包包，挑眉看著你，一副「我倒要看看你怎麼辦」的表情。）",
+      "choices": [
+        {
+          "card": "card_001",
+          "narration": "Gumayuwei 歪頭：「？？？」主管愣住，只好把需求重新講一遍——講完發現，其實只要改三個數字，十分鐘就能搞定。",
+          "reaction": "「原來裝傻也是一種需求釐清。」她在旁邊看完全程，若有所思地點頭。十分鐘後，你們準時出發。",
+          "effects": { "favorability": 4, "awkwardness": -3, "comedy": 6, "sincerity": 0, "confidence": 0, "social_death": 0 }
+        },
+        {
+          "card": "card_002",
+          "narration": "Gumayuwei 面對主管，雙手交叉，露出自信微笑：「不急。」整層樓瞬間安靜。",
+          "reaction": "主管的臉黑得像簽核章。她在你背後笑到快岔氣，一邊笑一邊幫你打開電腦：「你完蛋了，我幫你，快做。」",
+          "effects": { "favorability": 4, "awkwardness": 0, "comedy": 10, "sincerity": 0, "confidence": 8, "social_death": 15 }
+        },
+        {
+          "card": "card_003",
+          "narration": "Gumayuwei 望向窗外的夕陽，張開雙手對人生吶喊：「我還沒上車啊！」——喊的是下班這班車。",
+          "reaction": "「哈哈哈哈你對人生喊什麼啦！」她笑到不行，把包包放下。「好啦好啦，我幫你一起弄，弄完去吃飯。」",
+          "effects": { "favorability": 10, "awkwardness": 0, "comedy": 12, "sincerity": 0, "confidence": 0, "social_death": 5 }
+        },
+        {
+          "card": "card_004",
+          "narration": "Gumayuwei 接過報表，看著主管，認真地問：「還有嗎？有的話一次給我，我一次做完。」",
+          "reaction": "主管愣了一下，難得露出讚許的表情。她在旁邊也愣住了——原來這個怪人，扛起事情來意外地可靠。",
+          "effects": { "favorability": 8, "awkwardness": 0, "comedy": 3, "sincerity": 10, "confidence": 8, "social_death": 0 }
+        },
+        {
+          "card": "card_005",
+          "narration": "Gumayuwei 石化成摩艾，一動也不動。主管揮了揮手：「喂？聽到了嗎？」石像毫無反應。",
+          "reaction": "「他今天狀態不好，報表我來處理，明天早上給您。」她嘆著氣替你解圍，然後小聲說：「晚餐延到明天，你欠我兩次了。」",
+          "effects": { "favorability": 5, "awkwardness": 5, "comedy": 4, "sincerity": 3, "confidence": 0, "social_death": 0 }
+        }
+      ]
+    }
+  ]
+}

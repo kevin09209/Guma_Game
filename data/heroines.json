@@ -1,0 +1,15 @@
+{
+  "_comment": "女主角資料。Demo 先做一位：理性吐槽系同事。之後擴充直接往 heroines 陣列加人即可。",
+  "heroines": [
+    {
+      "id": "heroine_001",
+      "name": "林知夏",
+      "title": "理性吐槽系同事",
+      "scenes": ["公司", "會議室", "茶水間", "下班捷運", "公司聚餐"],
+      "personality": "冷靜、理性、嘴巴毒，常常吐槽 Gumayuwei。她一開始覺得 Gumayuwei 很怪，但慢慢發現他其實很可靠。",
+      "likes_card_types": ["疑惑型", "不急型", "社死補救型", "真誠型"],
+      "dislikes_card_types": ["太油膩的霸總卡", "過度裝帥卡", "太幼稚的變身卡"],
+      "theme": "從吐槽到理解。"
+    }
+  ]
+}
