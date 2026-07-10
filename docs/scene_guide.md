@@ -41,7 +41,7 @@
 **情況 B：你的圖是 PNG 或 JPG（AI 生圖通常是這種）**
 
 1. 把圖放進 `assets/backgrounds/`，例如 `pantry.png`
-2. 打開 `data/events.json`，把對應事件的 `background` 改成新檔名：
+2. 打開 `data/scenes.json`，把對應場景的 `background` 改成新檔名：
 
 ```json
 "background": "assets/backgrounds/pantry.png"
@@ -54,7 +54,7 @@
 ## 3. 新增全新場景
 
 1. 把新場景圖放進 `assets/backgrounds/`，例如 `night_market.png`（夜市）
-2. 在 `data/events.json` 新增事件（或修改現有事件）時，把 `background` 指向它：
+2. 在 `data/scenes.json` 新增場景（或修改現有場景）時，把 `background` 指向它：
 
 ```json
 {
@@ -147,5 +147,5 @@ visual novel background style, 16:9, high detail
 **Q：圖被切掉重要部分？**
 確認原圖是 16:9。不是的話，先裁成 16:9 再放進來。
 
-**Q：改了 events.json 之後遊戲整個開不起來？**
+**Q：改了 scenes.json 之後遊戲整個開不起來？**
 九成是 JSON 格式錯誤（少逗號、多逗號、引號沒關）。把檔案內容貼到 jsonlint.com 檢查，或注意瀏覽器按 F12 後 Console 的紅字錯誤。
