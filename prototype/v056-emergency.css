@@ -1,0 +1,160 @@
+/* ============================================================
+   v0.5.6 忍受條 × 緊急任務
+   ============================================================ */
+
+.tolerance-widget {
+  min-width: 190px;
+  max-width: 230px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 211, 77, 0.28);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.36);
+  box-shadow: inset 0 0 14px rgba(255, 211, 77, 0.04);
+}
+
+.tolerance-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #f4f0e8;
+  font-weight: 900;
+  margin-bottom: 5px;
+}
+
+.tolerance-label b {
+  color: var(--accent);
+}
+
+.tolerance-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tolerance-track span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff5c7a, #ffd34d, #68f5a8);
+  transform-origin: left center;
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1), filter 320ms ease;
+}
+
+.tolerance-widget.warn {
+  border-color: rgba(255, 120, 80, 0.62);
+  animation: toleranceWarn 680ms ease-in-out infinite alternate;
+}
+
+.tolerance-widget.danger {
+  border-color: rgba(255, 70, 70, 0.86);
+  box-shadow: 0 0 28px rgba(255, 40, 70, 0.42), inset 0 0 18px rgba(255, 40, 70, 0.15);
+}
+
+@keyframes toleranceWarn {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.35); }
+}
+
+.emergency-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 42;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 60, 80, 0.22), transparent 36%),
+    rgba(5, 5, 12, 0.82);
+  backdrop-filter: blur(5px);
+}
+
+.emergency-box {
+  width: 960px;
+  max-width: calc(100% - 80px);
+  min-height: 520px;
+  padding: 30px 34px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 211, 77, 0.42);
+  background: linear-gradient(180deg, rgba(24, 18, 34, 0.96), rgba(8, 8, 16, 0.96));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.68), 0 0 80px rgba(255, 40, 70, 0.22);
+  text-align: center;
+  color: #f4f0e8;
+  animation: emergencyIn 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes emergencyIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.emergency-kicker {
+  margin: 0 0 8px;
+  color: #ff5c7a;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-shadow: 0 0 18px rgba(255, 92, 122, 0.58);
+}
+
+.emergency-title {
+  margin: 0 0 10px;
+  font-size: 38px;
+  color: #ffd34d;
+}
+
+.emergency-prompt {
+  margin: 0 auto 14px;
+  max-width: 720px;
+  line-height: 1.7;
+  color: #d8d2df;
+  font-weight: 700;
+}
+
+.emergency-rule {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 18px;
+}
+
+.emergency-rule span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.emergency-selected,
+.emergency-roll-result {
+  margin: 12px auto;
+  max-width: 720px;
+  color: #fff;
+  font-weight: 900;
+  line-height: 1.6;
+}
+
+.emergency-roll-result.success {
+  color: #68f5a8;
+}
+
+.emergency-roll-result.fail {
+  color: #ff7b7b;
+}
+
+.emergency-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.emergency-overlay .hand {
+  justify-content: center;
+  margin: 10px auto 6px;
+}
