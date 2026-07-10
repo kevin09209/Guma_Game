@@ -1,281 +1,457 @@
 /* ============================================================
-   Gumayuwei 搞笑戀愛模擬器 Demo 樣式
-   風格：深色底 + 迷因感的亮色點綴，手機與桌面都能玩
+   Gumayuwei 搞笑戀愛模擬器（galgame 式介面）樣式
+   舞台固定 1280x720（16:9），由 main.js 縮放適配視窗。
    ============================================================ */
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 :root {
-  /* 主色調變數：之後想換皮只要改這裡 */
-  --bg: #14141f;
-  --panel: #1f1f2e;
-  --panel-light: #2a2a3d;
-  --text: #f0eee9;
-  --text-dim: #9a97a8;
-  --accent: #ffd34d;      /* 迷因黃：按鈕、重點 */
-  --heroine: #7fd1c8;     /* 女主角台詞顏色 */
-  --guma: #ffb47f;        /* Gumayuwei 台詞顏色 */
+  --accent: #ffd34d;      /* 迷因黃：重點色 */
+  --heroine: #8fd8ce;     /* 女主角名牌色 */
+  --guma: #ffb47f;        /* Gumayuwei 名牌色 */
+  --boss: #c9a0e8;        /* 主管名牌色 */
   --good: #7fd18b;
   --bad: #f07f7f;
+  --panel: rgba(18, 18, 30, 0.88);
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0a0a12;
   font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  line-height: 1.7;
-  min-height: 100vh;
 }
 
-#game {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 16px;
-}
+.hidden { display: none !important; }
 
-.hidden {
-  display: none !important;
+/* ---------- 舞台縮放 ---------- */
+#viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
-
-/* ---------- 通用按鈕 ---------- */
-.btn {
+#stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1280px;
+  height: 720px;
+  transform-origin: center center;
+  /* transform 的 scale 由 main.js 依視窗大小計算 */
+  overflow: hidden;
+  background: #000;
   cursor: pointer;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 28px;
-  font-size: 1rem;
-  font-weight: 700;
-  font-family: inherit;
-  transition: transform 0.1s, filter 0.15s;
 }
-.btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
-.btn:active { transform: translateY(0); }
-.btn-primary { background: var(--accent); color: #201a00; }
 
-/* ---------- 開始畫面 / 結局畫面 ---------- */
-.start-box, .ending-box {
-  text-align: center;
-  padding: 60px 20px;
+/* ---------- 背景 ---------- */
+.bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.start-tag {
-  color: var(--accent);
-  letter-spacing: 0.3em;
-  font-size: 0.85rem;
+
+/* ---------- 角色立繪 ---------- */
+.sprite {
+  position: absolute;
+  bottom: -40px;            /* 稍微沉出畫面下緣，構圖比較像 galgame */
+  width: 340px;
+  transition: filter 0.3s, transform 0.3s, opacity 0.3s;
 }
-.start-title {
-  font-size: 2.6rem;
-  line-height: 1.3;
-  margin: 12px 0 4px;
+.sprite img {
+  width: 100%;
+  display: block;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45));
 }
-.start-subtitle {
-  color: var(--text-dim);
-  margin-bottom: 24px;
+.sprite-left  { left: 60px; }
+.sprite-right { right: 60px; }
+
+/* 說話中的角色：亮、微放大；其他角色變暗 */
+.sprite.active { filter: brightness(1); transform: scale(1.03); z-index: 2; }
+.sprite.dim    { filter: brightness(0.5); transform: scale(1); }
+
+/* 情緒符號泡泡（浮在角色頭部旁，避開上方 HUD） */
+.emotion-badge {
+  position: absolute;
+  top: 64px;
+  left: 78%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  color: #222;
+  font-size: 30px;
+  font-weight: 700;
+  padding: 6px 18px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  animation: pop 0.25s ease;
+  z-index: 3;
+  white-space: nowrap;
 }
-.start-desc {
-  color: var(--text-dim);
-  font-size: 0.95rem;
-  margin-bottom: 36px;
+@keyframes pop {
+  from { transform: translateX(-50%) scale(0.3); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1);   opacity: 1; }
 }
 
 /* ---------- 上方資訊列 ---------- */
 .topbar {
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
-.scene-info { margin-bottom: 10px; }
-.badge {
-  display: inline-block;
-  background: var(--panel-light);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 2px 12px;
-  font-size: 0.8rem;
-  margin-right: 8px;
-}
-.badge-location { color: var(--accent); }
-
-/* 數值面板：六個數值排成網格 */
-.stats-panel {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px 16px;
-}
-@media (min-width: 640px) {
-  .stats-panel { grid-template-columns: repeat(6, 1fr); }
-}
-.stat { font-size: 0.78rem; }
-.stat-label { color: var(--text-dim); display: flex; justify-content: space-between; }
-.stat-bar {
-  background: var(--panel-light);
-  border-radius: 999px;
-  height: 6px;
-  overflow: hidden;
-  margin-top: 3px;
-}
-.stat-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--accent);
-  transition: width 0.5s ease;
-}
-/* 社死值與尷尬值用警告色，看起來比較危險 */
-.stat-fill.danger { background: var(--bad); }
-
-/* ---------- 劇情區 ---------- */
-.stage {
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 22px;
-  margin-bottom: 16px;
-}
-.event-title {
-  font-size: 1.3rem;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-.event-intro {
-  color: var(--text-dim);
-  font-size: 0.95rem;
-  margin-bottom: 18px;
-}
-
-/* 對話框 */
-.dialog {
-  background: var(--panel-light);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-}
-.dialog-name {
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.dialog-heroine .dialog-name { color: var(--heroine); }
-.dialog-guma .dialog-name { color: var(--guma); }
-.dialog-text { font-size: 0.98rem; }
-
-/* 出牌結果區 */
-.result-box { margin-top: 18px; animation: fadeIn 0.4s ease; }
-.result-effects {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+  z-index: 5;
+}
+.hud-location {
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+.hud-stats {
+  display: flex;
+  gap: 6px;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0 18px;
+  justify-content: flex-end;
 }
-.effect-chip {
+.hud-chip {
+  background: rgba(0, 0, 0, 0.55);
+  color: #ddd;
   border-radius: 999px;
-  padding: 2px 12px;
-  font-size: 0.82rem;
-  background: var(--panel-light);
+  font-size: 12px;
+  padding: 3px 10px;
+  white-space: nowrap;
 }
-.effect-chip.up { color: var(--good); }
-.effect-chip.down { color: var(--bad); }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.hud-chip b { color: var(--accent); font-weight: 700; }
+.hud-chip.danger b { color: var(--bad); }
+/* 數值變動時的脈衝提示 */
+.hud-chip.pulse { animation: chipPulse 0.6s ease; }
+@keyframes chipPulse {
+  0% { background: var(--accent); color: #201a00; }
+  100% { background: rgba(0, 0, 0, 0.55); color: #ddd; }
 }
 
-/* ---------- 手牌區 ---------- */
-.hand-area { margin-bottom: 24px; }
+/* ---------- 對話框 ---------- */
+.dialog {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 26px;
+  min-height: 150px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 40px 32px 26px;
+  z-index: 6;
+  backdrop-filter: blur(4px);
+}
+.nameplate {
+  position: absolute;
+  top: -18px;
+  left: 24px;
+  background: #2b2b3e;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 5px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.nameplate.speaker-guma    { color: var(--guma); }
+.nameplate.speaker-heroine { color: var(--heroine); }
+.nameplate.speaker-boss    { color: var(--boss); }
+.dialog-text {
+  color: #f2f0ea;
+  font-size: 21px;
+  line-height: 1.75;
+  min-height: 74px;
+}
+/* 旁白：斜體、偏灰，跟台詞區隔 */
+.dialog.narration .dialog-text { color: #b9b6c4; font-style: italic; }
+.dialog.narration .nameplate { display: none; }
+
+/* 推進提示箭頭（打字結束才顯示） */
+.advance-hint {
+  position: absolute;
+  right: 22px;
+  bottom: 12px;
+  color: var(--accent);
+  font-size: 15px;
+  animation: bounce 1s infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+/* ---------- 手牌選單 ---------- */
+.hand-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 16, 0.72);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 30px;
+  z-index: 8;
+  animation: fadeIn 0.3s ease;
+}
 .hand-hint {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 16px;
+  letter-spacing: 0.2em;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 .hand {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
 }
 
-/* 道具卡 */
+/* 手牌上的卡片 */
 .card {
-  background: var(--panel);
-  border: 1px solid var(--panel-light);
-  border-radius: 12px;
-  padding: 12px;
+  width: 200px;
+  background: #1d1d2c;
+  border: 2px solid #34344a;
+  border-radius: 14px;
+  overflow: hidden;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  color: var(--text);
-  transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+  color: #f0eee9;
+  padding: 0;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-16px) scale(1.04);
   border-color: var(--accent);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+}
+/* 卡圖區：有圖放圖，沒圖用占位樣式 */
+.card-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(160deg, #2c2c44, #1a1a28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.card-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-art .placeholder-line {
+  color: var(--accent);
+  font-size: 26px;
+  font-weight: 900;
+  text-align: center;
+  padding: 0 12px;
+  line-height: 1.4;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
 }
 .card-rarity {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 4px;
-  padding: 0 6px;
-  margin-bottom: 6px;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  border-radius: 5px;
+  padding: 1px 8px;
 }
-/* 稀有度顏色 */
 .rarity-N   { background: #4a4a5e; color: #d8d8e6; }
 .rarity-R   { background: #2d5e8a; color: #cfe8ff; }
 .rarity-SR  { background: #6a4a8a; color: #e8d8ff; }
 .rarity-SSR { background: #8a6a2d; color: #ffe9c2; }
 .rarity-UR  { background: linear-gradient(90deg, #8a2d5e, #8a6a2d); color: #ffe2f0; }
+.card-meta { padding: 10px 12px 12px; }
+.card-name { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+.card-desc { font-size: 11.5px; color: #9a97a8; line-height: 1.5; }
 
-.card-name {
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 4px;
+/* ---------- 出牌特寫演出（cut-in） ---------- */
+.cutin {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(6, 4, 14, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 60px;
+  cursor: pointer;
 }
-.card-line {
+/* 放射狀速度線背景（迷因出牌的氣勢） */
+.cutin-speedlines {
+  position: absolute;
+  inset: -200px;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 211, 77, 0.14) 0deg 4deg,
+    transparent 4deg 14deg
+  );
+  animation: spin 14s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 特寫卡面：從側面甩入 */
+.cutin-card {
+  position: relative;
+  width: 330px;
+  aspect-ratio: 3 / 4;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 60px rgba(255, 211, 77, 0.45), 0 24px 60px rgba(0, 0, 0, 0.7);
+  background: linear-gradient(160deg, #2c2c44, #1a1a28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cardIn 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.cutin-card img { width: 100%; height: 100%; object-fit: cover; }
+.cutin-card .placeholder-line {
   color: var(--accent);
-  font-size: 0.85rem;
-  margin-bottom: 4px;
+  font-size: 44px;
+  font-weight: 900;
+  text-align: center;
+  padding: 0 20px;
+  line-height: 1.4;
 }
-.card-desc {
-  color: var(--text-dim);
-  font-size: 0.76rem;
+@keyframes cardIn {
+  from { transform: translateX(-420px) rotate(-18deg); opacity: 0; }
+  to   { transform: translateX(0) rotate(-4deg); opacity: 1; }
 }
 
-/* ---------- 結局畫面 ---------- */
-.ending-title { font-size: 2rem; margin: 10px 0 24px; }
-.ending-title.good { color: var(--good); }
-.ending-title.bad { color: var(--bad); }
+/* 特寫右側文字 */
+.cutin-info { position: relative; max-width: 480px; animation: infoIn 0.5s 0.15s ease backwards; }
+@keyframes infoIn {
+  from { transform: translateX(60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.cutin-name {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+.cutin-line {
+  color: var(--accent);
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-shadow: 0 4px 20px rgba(255, 211, 77, 0.4);
+  margin-bottom: 22px;
+}
+.cutin-effects { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+.effect-chip {
+  border-radius: 999px;
+  padding: 3px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ddd;
+}
+.effect-chip.up   { color: var(--good); }
+.effect-chip.down { color: var(--bad); }
+.cutin-continue {
+  color: #9a97a8;
+  font-size: 14px;
+  animation: bounce 1s infinite;
+}
+
+/* ---------- 開始 / 結局 全螢幕覆蓋層 ---------- */
+.fullscreen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 211, 77, 0.10), transparent 55%),
+    linear-gradient(160deg, #14141f 0%, #1d1a2e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 80px;
+  animation: fadeIn 0.5s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.start-tag { color: var(--accent); letter-spacing: 0.4em; font-size: 15px; }
+.start-title {
+  color: #f2f0ea;
+  font-size: 56px;
+  font-weight: 900;
+  margin: 14px 0 6px;
+  text-shadow: 0 6px 30px rgba(255, 211, 77, 0.25);
+}
+.start-subtitle { color: #9a97a8; font-size: 18px; margin-bottom: 26px; }
+.start-desc { color: #b9b6c4; font-size: 16px; line-height: 2; margin-bottom: 40px; }
+
+.btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 46px;
+  font-size: 19px;
+  font-weight: 900;
+  font-family: inherit;
+  background: var(--accent);
+  color: #201a00;
+  box-shadow: 0 8px 26px rgba(255, 211, 77, 0.3);
+  transition: transform 0.12s, filter 0.15s;
+}
+.btn:hover { filter: brightness(1.1); transform: translateY(-3px); }
+
+/* 結局 */
+.ending-title { font-size: 46px; font-weight: 900; margin: 10px 0 22px; }
+.ending-title.good   { color: var(--good); }
+.ending-title.bad    { color: var(--bad); }
 .ending-title.normal { color: var(--accent); }
 .ending-text {
-  max-width: 560px;
-  margin: 0 auto 28px;
+  max-width: 720px;
+  color: #e8e6df;
+  font-size: 17px;
+  line-height: 1.9;
   text-align: left;
-  white-space: pre-line; /* 讓 JSON 裡的 \n 換行生效 */
-  color: var(--text);
-  background: var(--panel);
-  border-radius: 14px;
-  padding: 24px;
+  white-space: pre-line;  /* 讓 JSON 裡的 \n 換行生效 */
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px 30px;
+  margin-bottom: 22px;
 }
-.ending-stats {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 28px;
-}
+.ending-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 28px; }
 
-/* ---------- 資料載入失敗的錯誤提示 ---------- */
+/* ---------- 資料載入失敗提示 ---------- */
 .load-error {
-  background: var(--panel);
-  border: 1px solid var(--bad);
-  border-radius: 14px;
-  padding: 24px;
-  margin-top: 40px;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #14141f;
+  color: #f0eee9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 17px;
+  line-height: 1.8;
+  text-align: center;
 }
-.load-error code {
-  background: var(--panel-light);
-  border-radius: 6px;
-  padding: 2px 8px;
-}
+.load-error code { background: #2b2b3e; border-radius: 6px; padding: 2px 10px; color: var(--accent); }
