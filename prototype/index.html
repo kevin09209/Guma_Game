@@ -2,11 +2,18 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gumayuwei 搞笑戀愛模擬器</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- 手機直拿時的轉向提醒（CSS 判斷直式才顯示） -->
+  <div id="rotate-hint">
+    <div class="rotate-icon">📱↻</div>
+    <p>把手機轉成<b>橫向</b>，體驗最佳！</p>
+    <p class="rotate-sub">（直向也能玩，只是畫面會比較小）</p>
+  </div>
+
   <!-- 視窗容器：負責把 16:9 的舞台置中、縮放到適配螢幕 -->
   <div id="viewport">
     <!-- 舞台：固定 1280x720 的遊戲畫面，所有東西都畫在這裡面 -->

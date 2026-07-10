@@ -14,9 +14,19 @@
 - 卡片圖：放進 `assets/cards/`（命名規則見該資料夾的 README），缺圖時自動顯示占位卡面
 - 道具卡 5 張：疑惑問號、不急、我還沒上車啊、還有嗎？、摩艾沉默
 - 事件 3 個：茶水間巧遇 → 下班邀約 → 臨時加班危機
-- 結局 3 個：成功約到晚餐／被吐槽但留下印象／社死失敗
+- 結局 10 個：卡片路線結局（不急告白、紅豆湯圓純愛、摩艾沉默系戀愛、永遠沒上車、紅豆湯圓吃太多、摩艾完全石化）＋社死浪漫＋原本 3 個（完整規劃見 [docs/endings_plan.md](docs/endings_plan.md)）
 
 ## 怎麼玩
+
+### 手機／任何裝置（GitHub Pages）
+
+啟用 GitHub Pages 後（Settings → Pages → Source 選「GitHub Actions」），推送會自動部署，手機瀏覽器直接開：
+
+> https://kevin09209.github.io/Guma_Game/
+
+建議手機橫拿。支援觸控點擊推進劇情。
+
+### 電腦本機
 
 因為瀏覽器安全限制，請用本機伺服器開啟（不要直接雙擊 index.html）：
 
@@ -26,6 +36,8 @@ python3 -m http.server 8000
 ```
 
 然後用瀏覽器打開 <http://localhost:8000/prototype/> 即可開始遊戲。
+
+手機跟電腦連同一個 Wi-Fi 的話，手機也可以開 `http://<電腦的區網IP>:8000/prototype/` 試玩。
 
 ### 玩法
 
@@ -59,9 +71,11 @@ python3 -m http.server 8000
 
 所有遊戲內容都在 `/data` 的 JSON 檔裡，改完重新整理網頁即可生效：
 
+- **換場景圖**：見 [docs/scene_guide.md（場景替換教學手冊）](docs/scene_guide.md)
 - **加新卡片**：在 `cards.json` 的 `cards` 陣列加一張卡，然後在 `events.json` 的事件 `choices` 裡引用它的 `id`
 - **加新事件**：在 `events.json` 的 `events` 陣列照格式加一個事件，遊戲會自動依序播放
-- **調整結局條件**：改 `endings.json` 各結局的 `conditions`（由上而下判定，第一個符合的生效）
+- **調整結局條件**：改 `endings.json` 各結局的 `conditions`（由上而下判定，第一個符合的生效；`stats` 是數值條件、`cards` 是卡片使用次數條件）
+- **結局擴充規劃**：見 [docs/endings_plan.md（結局篩選與實裝規劃）](docs/endings_plan.md)
 - **加新女主角**：在 `heroines.json` 加人，並在新事件的 `heroine` 欄位引用她的 `id`
 
 後續擴充方向（抽卡、更多女主角、CG 收集、社死排行榜⋯⋯）請見企劃書第 17 節。

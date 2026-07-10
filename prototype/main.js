@@ -64,6 +64,7 @@ const state = {
     social_death: 0,
   },
   eventIndex: 0,   // 進行到第幾個事件
+  cardUse: {},     // 這一輪每張卡用過幾次（例如 { card_005: 2 }），結局判定會用到
   script: [],      // 目前正在播放的劇本（一行一行）
   lineIndex: -1,   // 播到劇本的第幾行
   inOutcome: false, // 是否正在播「出牌後的結果劇本」
@@ -341,6 +342,9 @@ function playCard(choice) {
   const card = getCard(choice.card);
   $("hand-overlay").classList.add("hidden");
 
+  // 0. 記錄卡片使用次數（某些結局的條件是「同一張卡用了幾次」）
+  state.cardUse[choice.card] = (state.cardUse[choice.card] || 0) + 1;
+
   // 1. 套用數值變化（不讓數值低於 0）
   const changedKeys = [];
   Object.entries(choice.effects).forEach(([key, delta]) => {
@@ -394,17 +398,24 @@ function playCard(choice) {
 // 結局
 // ------------------------------------------------------------
 
-// 依 endings.json 的順序，找到第一個條件全部符合的結局
+// 依 endings.json 的順序，找到第一個條件全部符合的結局。
+// 條件有兩種：stats（數值高低）與 cards（某張卡這輪用了幾次），
+// 規則都是 { min: 最小值 } / { max: 最大值 }，兩種條件要同時滿足。
 function decideEnding() {
-  for (const ending of DATA.endings) {
-    const conditions = ending.conditions || {};
-    const allMet = Object.entries(conditions).every(([statKey, rule]) => {
-      const value = state.stats[statKey];
+  // 檢查一組規則是否全部符合（values 是要對照的數字表）
+  const meets = (rules, values) =>
+    Object.entries(rules).every(([key, rule]) => {
+      const value = values[key] || 0;
       if (rule.min !== undefined && value < rule.min) return false;
       if (rule.max !== undefined && value > rule.max) return false;
       return true;
     });
-    if (allMet) return ending;
+
+  for (const ending of DATA.endings) {
+    const conditions = ending.conditions || {};
+    const statsOk = meets(conditions.stats || {}, state.stats);
+    const cardsOk = meets(conditions.cards || {}, state.cardUse);
+    if (statsOk && cardsOk) return ending;
   }
   return DATA.endings[DATA.endings.length - 1]; // 保險：最後一個是無條件結局
 }
@@ -436,8 +447,9 @@ function showEnding() {
 // 開始 / 重新開始
 // ------------------------------------------------------------
 function startGame() {
-  // 數值歸零
+  // 數值與卡片使用紀錄歸零
   Object.keys(state.stats).forEach((key) => (state.stats[key] = 0));
+  state.cardUse = {};
   state.eventIndex = 0;
   $("screen-start").classList.add("hidden");
   $("screen-ending").classList.add("hidden");
