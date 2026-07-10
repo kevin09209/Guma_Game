@@ -1,5 +1,6 @@
 # 把遊戲部署到 GitHub Pages，讓手機直接用網址遊玩。
-# 推送到 main 或開發分支時自動部署整個 repo（純靜態網站，不需要編譯）。
+# 做法：把整個 repo（純靜態網站）發佈到 gh-pages 分支。
+# GitHub 偵測到 gh-pages 分支會自動開啟 Pages，不需要手動進設定頁。
 name: Deploy to GitHub Pages
 
 on:
@@ -8,9 +9,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # 需要寫入權限才能推送 gh-pages 分支
 
 concurrency:
   group: pages
@@ -19,16 +18,11 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - name: Publish to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true # 若 Pages 尚未開啟，嘗試自動開啟
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          exclude_assets: ".github"
