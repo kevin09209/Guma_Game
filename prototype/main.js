@@ -10,7 +10,10 @@
    - js/audio.js   BGM 與音效（Web Audio 程序生成）
    - main.js       單局流程：劇本播放 → 出牌 → 補救/緊急任務 → 汰換 → 跳轉 → 結局
 
-   v0.5.6：女主忍受條 / 緊急任務 / SSR+ 救援骰
+   v0.5.7：等等！！！救援骰
+   - 忍受條歸零時，Gumayuwei 先大喊「等等！！！」再進入救援。
+   - 1~3：乘上該救援卡在當前場景對應的效果數值。
+   - 4~6：直接進入對應緊急壞結局。
    ============================================================ */
 
 import {
@@ -27,9 +30,12 @@ const TOLERANCE_MAX = 100;
 const TOLERANCE_EMERGENCY_THRESHOLD = 0;
 const EMERGENCY_RARITY_MIN = RARITY_ORDER.SSR;
 const DICE_FACES = {
-  1: { key: "water", label: "水", line: "水床沒玩到", multiplier: 1 },
-  2: { key: "law", label: "法", line: "完全法克", multiplier: 2 },
-  3: { key: "g", label: "G", line: "G 起來", multiplier: 3 },
+  1: { type: "success", key: "one", label: "1", line: "救援卡場景效果 ×1", multiplier: 1 },
+  2: { type: "success", key: "two", label: "2", line: "救援卡場景效果 ×2", multiplier: 2 },
+  3: { type: "success", key: "three", label: "3", line: "救援卡場景效果 ×3", multiplier: 3 },
+  4: { type: "fail", key: "four", label: "Four!", line: "準備回家自己爽了" },
+  5: { type: "fail", key: "water", label: "水", line: "水床沒玩到，那就都不要玩了" },
+  6: { type: "fail", key: "law", label: "完全法克", line: "大法師完全搞砸了" },
 };
 
 const EMERGENCY_BAD_ENDINGS = {
@@ -37,31 +43,28 @@ const EMERGENCY_BAD_ENDINGS = {
     ending_id: "ending_emergency_no_card",
     title: "沒有救援卡的夜晚",
     mood: "bad",
-    text: "女主的忍受條歸零時，你翻遍手牌，卻發現沒有任何 SSR 以上的卡可以救場。\n\n現場安靜得像專案上線前一分鐘。\n\n她看著你，露出非常禮貌、非常遙遠的微笑：\n\n「今天先到這裡吧。我需要回去重新理解一下人類。」\n\n你想補救，但系統提示：沒有救援卡。戀愛流程中止。",
+    text: "女主的忍受條歸零時，你大喊「等等！！！」，然後翻遍手牌，卻發現沒有任何 SSR 以上的卡可以救場。\n\n現場安靜得像專案上線前一分鐘。\n\n她看著你，露出非常禮貌、非常遙遠的微笑：\n\n「今天先到這裡吧。我需要回去重新理解一下人類。」\n\n你想補救，但系統提示：沒有救援卡。戀愛流程中止。",
+  },
+  four: {
+    ending_id: "ending_emergency_four_self",
+    title: "Four! 回家自己爽了",
+    mood: "bad",
+    text: "你在緊急任務中擲出了 4 點：Four!\n\n系統提示：準備回家自己爽了。\n\nGumayuwei 的「等等！！！」還在空氣中迴盪，但骰子已經替你做出判決。\n\n她看著你，像看著一個準備把人生存檔關掉的人：\n\n「你真的很努力，但方向完全不對。」\n\n那天晚上，你沒有挽回女主，只挽回了獨自回家的時間。",
   },
   water: {
     ending_id: "ending_emergency_waterbed",
     title: "水床沒玩到",
     mood: "bad",
-    text: "你在緊急任務中擲出了 1 點：水。\n\n系統提示：水床沒玩到，效果只乘以 1。\n\n救援卡飛出去的瞬間像一滴水落進火災現場——有聲音，但沒有用。\n\n她沉默三秒後說：\n\n「我感覺你已經盡力了，但我也已經到極限了。」\n\n那天晚上，你沒有挽回局勢，只學會了水不一定能滅火。",
+    text: "你在緊急任務中擲出了 5 點：水。\n\n系統提示：水床沒玩到，那就都不要玩了。\n\n救援環節還沒開始，現場就像被倒了一桶冷水。\n\n她沉默三秒後說：\n\n「我本來以為你至少會有一點補救能力，結果你連幻想都安排得很失敗。」\n\n水床沒玩到，戀愛也沒玩到。",
   },
   law: {
     ending_id: "ending_emergency_law_fucked",
     title: "完全法克",
     mood: "bad",
-    text: "你在緊急任務中擲出了 2 點：法。\n\n系統提示：完全法克，效果乘以 2。\n\n照理說這應該有救，但你的操作讓場面從普通事故升級成需要法務部門理解的等級。\n\n她扶著額頭說：\n\n「我不知道你剛剛想救什麼，但你確實把事情變得更完整了。完整地完蛋。」\n\n恭喜，你完成了完全法克結局。",
-  },
-  g: {
-    ending_id: "ending_emergency_g_fail",
-    title: "G 不起來",
-    mood: "bad",
-    text: "你在緊急任務中擲出了 3 點：G。\n\n理論上這是最大倍率。理論上。\n\n但不是每一個 G 都能 G 起來。救援卡的光芒很亮，現場的尷尬更亮。\n\n她看著你，語氣平靜到像結案報告：\n\n「倍率很高，但方向錯了。」\n\n你輸了。不是輸在點數，是輸在使用時機。",
+    text: "你在緊急任務中擲出了 6 點：完全法克。\n\n系統提示：大法師完全搞砸了。\n\n這不是普通失誤，這是可以寫進魔法史的災難。\n\n她扶著額頭說：\n\n「我不知道你剛剛召喚了什麼，但我確定它不叫戀愛。」\n\n大法師施法失敗，局勢徹底法克。",
   },
 };
 
-// ------------------------------------------------------------
-// 單局狀態（跨局的收藏/票券在 storage.js）
-// ------------------------------------------------------------
 const state = {
   stats: { favorability: 0, awkwardness: 0, comedy: 0, sincerity: 0, confidence: 0, social_death: 0, appetite: 0, battle: 0 },
   tolerance: TOLERANCE_MAX,
@@ -89,12 +92,8 @@ const state = {
 };
 
 const currentScene = () => getScene(state.sceneId);
-
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-// ------------------------------------------------------------
-// 發牌：首局固定教學手牌，之後從收藏隨機抽（?hand= 供測試指定）
-// ------------------------------------------------------------
 function getPlayablePool() {
   let owned = store.getOwnedIds().filter((id) => getCard(id));
   if (owned.length < HAND_SIZE) {
@@ -126,9 +125,6 @@ function drawCardFromCollection() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// ------------------------------------------------------------
-// 數值：標籤加成、忍受條與套用
-// ------------------------------------------------------------
 function tagModifiers(card, scene, heroine) {
   const bonus = { favorability: 0, awkwardness: 0, social_death: 0 };
   (card.tags || []).forEach((tag) => {
@@ -147,6 +143,13 @@ function mergeEffects(...effectsList) {
     });
   });
   return merged;
+}
+function scaleEffects(effects, multiplier) {
+  const scaled = {};
+  Object.entries(effects || {}).forEach(([key, value]) => {
+    scaled[key] = Math.round((Number(value) || 0) * multiplier);
+  });
+  return scaled;
 }
 function applyEffects(effects) {
   Object.entries(effects || {}).forEach(([key, delta]) => {
@@ -195,9 +198,6 @@ function renderHud(changedKeys = []) {
   renderTolerance();
 }
 
-// ------------------------------------------------------------
-// 立繪與情緒
-// ------------------------------------------------------------
 function highlightSpeaker(speaker) {
   const guma = $("sprite-guma");
   const heroine = $("sprite-heroine");
@@ -234,9 +234,6 @@ function speakerName(speaker) {
   return speaker;
 }
 
-// ------------------------------------------------------------
-// 劇本播放（打字機）
-// ------------------------------------------------------------
 function typeText(text) {
   const box = $("dialog-text");
   box.textContent = "";
@@ -293,9 +290,6 @@ function templateScript(lines, vars) {
   }));
 }
 
-// ------------------------------------------------------------
-// 場景流程
-// ------------------------------------------------------------
 function loadScene(sceneId) {
   state.sceneId = sceneId;
   state.stopCount += 1;
@@ -320,9 +314,6 @@ function openHand() {
   $("hand-overlay").classList.remove("hidden");
 }
 
-// ------------------------------------------------------------
-// 出牌主流程
-// ------------------------------------------------------------
 function resolveResult(scene, cardId, card) {
   const bespoke = (scene.card_results || {})[cardId];
   const fallback = scene.fallback || {};
@@ -372,7 +363,10 @@ function afterResult(cardId) {
   maybeEmergencyMission();
 }
 function maybeEmergencyMission() {
-  if (state.emergencyPending) { openEmergencyMission(); return; }
+  if (state.emergencyPending) {
+    playScript([{ type: "dialogue", speaker: "guma", emotion: "shout", text: "等等！！！" }], openEmergencyMission);
+    return;
+  }
   maybeRescue();
 }
 function maybeRescue() {
@@ -397,9 +391,6 @@ function maybeRescue() {
   $("rescue-overlay").classList.remove("hidden");
 }
 
-// ------------------------------------------------------------
-// 忍受條歸零：緊急任務
-// ------------------------------------------------------------
 function openEmergencyMission() {
   state.mode = "emergency";
   state.emergencyCardId = null;
@@ -418,7 +409,7 @@ function openEmergencyMission() {
     $("emergency-prompt").textContent = "女主忍受條已歸零，但你手上沒有 SSR 以上卡可以救場。";
     $("btn-emergency-give-up").textContent = "沒有救援卡，進入壞結局";
   } else {
-    $("emergency-prompt").textContent = "局勢已經失控。選擇 1 張 SSR / UR 卡作為緊急救援卡，再擲骰決定倍率。";
+    $("emergency-prompt").textContent = "局勢已經失控。選擇 1 張 SSR / UR 卡作為緊急救援卡，再擲骰決定命運。1~3 會乘上該卡在目前場景的效果，4~6 會直接翻車。";
     $("btn-emergency-give-up").textContent = "放棄救援，接受壞結局";
     candidates.forEach((id) => box.appendChild(buildCardButton(id, selectEmergencyCard)));
   }
@@ -432,12 +423,13 @@ function selectEmergencyCard(cardId) {
   $("btn-emergency-roll").disabled = false;
   $("btn-emergency-roll").classList.remove("disabled");
 }
-function multipliedEffects(card, multiplier) {
-  const result = {};
-  Object.entries(card.effects || {}).forEach(([key, value]) => {
-    result[key] = Math.round((Number(value) || 0) * multiplier);
-  });
-  return result;
+function sceneEffectsForEmergencyCard(cardId) {
+  const scene = currentScene();
+  const card = getCard(cardId);
+  const heroine = getHeroine(scene.heroine);
+  const result = resolveResult(scene, cardId, card);
+  const bonus = tagModifiers(card, scene, heroine);
+  return mergeEffects(result.effects, bonus);
 }
 function rescuePowerFromEffects(effects) {
   return Math.round(
@@ -453,25 +445,33 @@ function rescuePowerFromEffects(effects) {
 }
 function rollEmergencyDice() {
   if (!state.emergencyCardId) return;
-  const roll = Math.floor(Math.random() * 3) + 1;
+  const roll = Math.floor(Math.random() * 6) + 1;
   const face = DICE_FACES[roll];
   const card = getCard(state.emergencyCardId);
-  const effects = multipliedEffects(card, face.multiplier);
+
+  $("btn-emergency-roll").disabled = true;
+  $("btn-emergency-roll").classList.add("disabled");
+
+  if (face.type === "fail") {
+    $("emergency-roll-result").textContent = `擲出 ${roll}「${face.label}」：${face.line}。救援失敗。`;
+    $("emergency-roll-result").className = "emergency-roll-result fail";
+    $("emergency-roll-result").classList.remove("hidden");
+    window.setTimeout(() => emergencyFail(face.key), 900);
+    return;
+  }
+
+  const baseEffects = sceneEffectsForEmergencyCard(state.emergencyCardId);
+  const effects = scaleEffects(baseEffects, face.multiplier);
   const power = rescuePowerFromEffects(effects);
   state.cardUse[state.emergencyCardId] = (state.cardUse[state.emergencyCardId] || 0) + 1;
   applyEffects(effects);
   renderHud(Object.keys(effects || {}));
 
-  $("emergency-roll-result").textContent = `擲出 ${roll}「${face.label}」：${face.line}，${card.name} 效果 ×${face.multiplier}，救援力 ${power}。`;
-  $("emergency-roll-result").className = `emergency-roll-result ${power >= 24 ? "success" : "fail"}`;
+  $("emergency-roll-result").textContent = `擲出 ${roll} 點：${card.name} 在本場景的效果 ×${face.multiplier}，救援力 ${power}。`;
+  $("emergency-roll-result").className = "emergency-roll-result success";
   $("emergency-roll-result").classList.remove("hidden");
-  $("btn-emergency-roll").disabled = true;
-  $("btn-emergency-roll").classList.add("disabled");
 
-  window.setTimeout(() => {
-    if (power >= 24) emergencySuccess(card, face, effects, power);
-    else emergencyFail(face.key);
-  }, 900);
+  window.setTimeout(() => emergencySuccess(card, face, effects, power), 900);
 }
 function emergencySuccess(card, face, effects, power) {
   state.tolerance = clamp(Math.max(12, power), 12, 70);
@@ -480,8 +480,8 @@ function emergencySuccess(card, face, effects, power) {
   $("emergency-overlay").classList.add("hidden");
   renderHud(Object.keys(effects || {}));
   playScript([
-    { type: "narration", text: `緊急救援成功！${card.name} 在「${face.line}」的倍率下硬是把局勢拉了回來。` },
-    { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "我不知道你剛剛怎麼辦到的，但我承認，至少現在還可以繼續談。" },
+    { type: "narration", text: `緊急救援成功！${card.name} 在本場景的效果被骰子放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
+    { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛那聲『等等』很吵，但這次……至少真的有救到。" },
   ], openSwap);
 }
 function emergencyFail(reasonKey = "no_card") {
@@ -492,9 +492,6 @@ function emergencyFail(reasonKey = "no_card") {
   showEnding();
 }
 
-// ------------------------------------------------------------
-// 手牌汰換（淘汰 1 張 → 抽卡補 1 張）
-// ------------------------------------------------------------
 function openSwap() {
   if (state.pendingNext === "ending") { goNext(); return; }
   state.mode = "swap";
@@ -517,9 +514,6 @@ function goNext() {
   else loadScene(next || DATA.start);
 }
 
-// ------------------------------------------------------------
-// 結局
-// ------------------------------------------------------------
 function decideEnding() {
   if (state.forcedEnding) return state.forcedEnding;
   const meets = (rules, values) => Object.entries(rules).every(([key, rule]) => {
@@ -568,9 +562,6 @@ function showEnding() {
   $("screen-ending").classList.remove("hidden");
 }
 
-// ------------------------------------------------------------
-// 特寫演出（cut-in）
-// ------------------------------------------------------------
 function showCutin(card, effects, bonus, onDismiss) {
   const cardBox = $("cutin-card");
   cardBox.innerHTML = `<span class="placeholder-line">「${esc(card.line)}」</span>`;
@@ -607,9 +598,6 @@ function showCutin(card, effects, bonus, onDismiss) {
   $("cutin").onclick = (e) => { e.stopPropagation(); dismiss(); };
 }
 
-// ------------------------------------------------------------
-// 開局抽卡（run draw）：開始前抽 1 張／汰換後抽 1 張
-// ------------------------------------------------------------
 function openRunDraw(mode) {
   state.runDrawMode = mode;
   state.runDrawDone = false;
@@ -648,9 +636,6 @@ function resolveRunDraw() {
   }
 }
 
-// ------------------------------------------------------------
-// 首頁與開始
-// ------------------------------------------------------------
 function hidePanels() {
   ["screen-gacha", "screen-collection", "screen-endings", "screen-ending", "screen-run-draw"].forEach((id) => $(id).classList.add("hidden"));
 }
@@ -687,9 +672,6 @@ function backHome() {
   $("screen-start").classList.remove("hidden");
 }
 
-// ------------------------------------------------------------
-// 入口與事件綁定
-// ------------------------------------------------------------
 async function init() {
   fitStage();
   window.addEventListener("resize", fitStage);
@@ -729,7 +711,7 @@ async function init() {
   on("btn-no-swap", goNext);
   on("btn-bgm", audio.toggleMute);
   on("btn-emergency-roll", rollEmergencyDice);
-  on("btn-emergency-give-up", () => emergencyFail(state.emergencyCardId ? "water" : "no_card"));
+  on("btn-emergency-give-up", () => emergencyFail(state.emergencyCardId ? "four" : "no_card"));
 
   $("stage").addEventListener("click", () => { if (state.mode === "story") advance(); });
   window.addEventListener("keydown", (e) => {
