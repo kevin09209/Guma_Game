@@ -6,6 +6,7 @@
   <title>Gumayuwei 搞笑戀愛模擬器</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="v042-transitions.css" />
+  <link rel="stylesheet" href="v056-emergency.css" />
 </head>
 <body>
   <div id="rotate-hint">
@@ -30,6 +31,10 @@
 
       <header id="topbar" class="topbar hidden">
         <span id="hud-location" class="hud-location"></span>
+        <div id="heroine-tolerance" class="tolerance-widget">
+          <div class="tolerance-label"><span>女主忍受條</span><b id="tolerance-value">100%</b></div>
+          <div class="tolerance-track"><span id="tolerance-fill"></span></div>
+        </div>
         <div id="hud-stats" class="hud-stats"></div>
       </header>
 
@@ -68,6 +73,26 @@
         </div>
       </div>
 
+      <div id="emergency-overlay" class="emergency-overlay hidden">
+        <div class="emergency-box">
+          <p class="emergency-kicker">EMERGENCY MISSION</p>
+          <h2 class="emergency-title">女主忍受條歸零</h2>
+          <p id="emergency-prompt" class="emergency-prompt">局勢已經失控，只能使用 SSR 以上卡片緊急救援。</p>
+          <div class="emergency-rule">
+            <span>🎲 1 水：水床沒玩到 ×1</span>
+            <span>🎲 2 法：完全法克 ×2</span>
+            <span>🎲 3 G：G 起來 ×3</span>
+          </div>
+          <div id="emergency-cards" class="hand hand-small"></div>
+          <p id="emergency-selected" class="emergency-selected hidden"></p>
+          <p id="emergency-roll-result" class="emergency-roll-result hidden"></p>
+          <div class="emergency-actions">
+            <button id="btn-emergency-roll" class="btn disabled" disabled>擲骰救援</button>
+            <button id="btn-emergency-give-up" class="btn btn-ghost">接受壞結局</button>
+          </div>
+        </div>
+      </div>
+
       <div id="swap-overlay" class="swap-overlay hidden">
         <div class="swap-box">
           <p class="swap-title">手牌汰換</p>
@@ -87,7 +112,7 @@
       </div>
 
       <div id="screen-start" class="fullscreen-overlay">
-        <p class="start-tag">v0.5｜重構 × BGM</p>
+        <p class="start-tag">v0.5.6｜忍受條 × 緊急任務</p>
         <h1 class="start-title">Gumayuwei 約會模擬器</h1>
         <p class="start-subtitle">— 台北・公司篇 —</p>
         <p class="start-desc">卡片會隨著遊玩逐漸累積；開始遊戲前會先抽 1 張，再進入劇情。</p>
