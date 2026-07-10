@@ -19,6 +19,7 @@
 
       <div id="sprite-guma" class="sprite sprite-left">
         <div class="emotion-badge hidden"></div>
+        <div id="guma-emotion-text" class="character-emotion-text hidden">Gumayuwei 表情：待機</div>
         <img src="../assets/characters/gumayuwei.svg" alt="Gumayuwei" />
       </div>
       <div id="sprite-heroine" class="sprite sprite-right">
@@ -38,7 +39,8 @@
       </div>
 
       <div id="hand-overlay" class="hand-overlay hidden">
-        <p class="hand-hint">－ 選擇一張道具卡，操控 Gumayuwei 的反應 －</p>
+        <div id="choice-context" class="choice-context"></div>
+        <p class="hand-hint">－ 參考剛剛的對話，選擇一張道具卡 －</p>
         <div id="hand" class="hand"></div>
       </div>
 
@@ -65,22 +67,30 @@
       <div id="swap-overlay" class="swap-overlay hidden">
         <div class="swap-box">
           <p class="swap-title">手牌汰換</p>
-          <p class="swap-hint">可以淘汰 1 張手牌，從收藏中重抽 1 張（點卡片淘汰）。</p>
+          <p class="swap-hint">可以淘汰 1 張手牌，進行一次抽卡，抽到的新卡會加入收藏並補進手牌。</p>
           <div id="swap-hand" class="hand hand-small"></div>
           <p id="swap-result" class="swap-result hidden"></p>
-          <button id="btn-no-swap" class="btn btn-ghost">保留目前手牌，繼續 ▶</button>
+          <button id="btn-no-swap" class="btn btn-ghost">不汰換，繼續 ▶</button>
         </div>
       </div>
 
+      <div id="screen-run-draw" class="fullscreen-overlay screen-panel hidden">
+        <p class="start-tag">STORY DRAW</p>
+        <h1 id="run-draw-title" class="panel-title">開始前抽一張卡</h1>
+        <p id="run-draw-desc" class="panel-subtitle">每次開始遊戲都會先抽 1 張，卡片會慢慢累積到收藏。</p>
+        <div id="run-draw-result" class="gacha-results single"></div>
+        <button id="btn-run-draw" class="btn">抽 1 張</button>
+      </div>
+
       <div id="screen-start" class="fullscreen-overlay">
-        <p class="start-tag">v0.4｜抽卡 × 收藏 × 結局圖鑑</p>
+        <p class="start-tag">v0.4.1｜修正版</p>
         <h1 class="start-title">Gumayuwei 約會模擬器</h1>
         <p class="start-subtitle">— 台北・公司篇 —</p>
-        <p class="start-desc">抽卡解鎖更多道具卡；每次抵達結局都會自動登錄圖鑑。</p>
+        <p class="start-desc">卡片會隨著遊玩逐漸累積；開始遊戲前會先抽 1 張，再進入劇情。</p>
         <div id="home-progress" class="home-progress"></div>
         <div class="menu-buttons">
           <button id="btn-start" class="btn">▶ 開始上班</button>
-          <button id="btn-open-gacha" class="btn btn-secondary">✨ 抽卡</button>
+          <button id="btn-open-gacha" class="btn btn-secondary">✨ 使用抽卡券</button>
           <button id="btn-open-collection" class="btn btn-secondary">🃏 卡片收藏</button>
           <button id="btn-open-endings" class="btn btn-secondary">📖 結局圖鑑</button>
         </div>
@@ -88,13 +98,13 @@
 
       <div id="screen-gacha" class="fullscreen-overlay screen-panel hidden">
         <button id="btn-close-gacha" class="panel-close">×</button>
-        <p class="start-tag">GACHA</p>
+        <p class="start-tag">GACHA TICKET</p>
         <h1 class="panel-title">迷因抽卡機</h1>
         <p id="gacha-summary" class="panel-subtitle"></p>
-        <p class="panel-note">機率：N 50%｜R 30%｜SR 13%｜SSR 5%｜UR 2%；首次十抽保底 SR。</p>
+        <p class="panel-note">首頁抽卡需要抽卡券；抽卡券會透過遊玩與達成結局逐步取得。</p>
         <div class="gacha-actions">
-          <button id="btn-draw-one" class="btn">單抽</button>
-          <button id="btn-draw-ten" class="btn">十抽</button>
+          <button id="btn-draw-one" class="btn">使用 1 張券</button>
+          <button id="btn-draw-ten" class="btn">使用 10 張券</button>
         </div>
         <div id="gacha-results" class="gacha-results"></div>
       </div>
@@ -121,8 +131,9 @@
         <h1 id="ending-title" class="ending-title"></h1>
         <p id="ending-text" class="ending-text"></p>
         <div id="ending-stats" class="ending-stats"></div>
+        <p id="ending-reward" class="panel-note"></p>
         <div class="menu-buttons compact">
-          <button id="btn-restart" class="btn">↻ 再來一次（重抽手牌）</button>
+          <button id="btn-restart" class="btn">↻ 再來一次</button>
           <button id="btn-ending-gallery" class="btn btn-secondary">📖 查看結局圖鑑</button>
           <button id="btn-back-home" class="btn btn-ghost">回首頁</button>
         </div>
