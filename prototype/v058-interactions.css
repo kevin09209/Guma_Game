@@ -1,5 +1,5 @@
 /* ============================================================
-   v0.5.8 場景選擇 × 翻面汰換
+   v0.5.9 場景選擇 × 翻面汰換
    ============================================================ */
 
 .scene-choice-overlay {
@@ -70,11 +70,39 @@
   to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
+.swap-box {
+  display: flex;
+  flex-direction: column;
+  max-height: 88%;
+}
+
+.swap-box .hand-small {
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
 .swap-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
   display: flex;
   justify-content: center;
   gap: 14px;
   margin-top: 14px;
+  padding: 14px 0 4px;
+  background: linear-gradient(180deg, rgba(8, 8, 16, 0), rgba(8, 8, 16, 0.96) 36%);
+}
+
+.swap-select-card {
+  transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.swap-select-card.selected-card {
+  transform: translateY(-18px) scale(1.06);
+}
+
+.swap-select-card.selected-card::after {
+  content: "準備汰換";
 }
 
 .swap-flip-card {
