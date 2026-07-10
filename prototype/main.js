@@ -1,11 +1,10 @@
 /* ============================================================
    main.js — 遊戲流程引擎（單局狀態機）
    ------------------------------------------------------------
-   v0.5.8：場景選擇 × 翻面汰換
-   - 每個場景在道具卡前新增簡單選擇題。
-   - 汰換牌改成：選牌 → 確認 → 翻面補牌。
-   - 補牌牌庫排除目前手牌。
-   - 緊急骰 UI 簡化：4 Four! / 5 水床沒玩到 / 6 完全法克。
+   v0.5.9：選項對話化 × 汰換可重選 × 選卡降延遲
+   - 選完場景選項後，先在文字框顯示 Gumayuwei 的選擇，再顯示女主回覆。
+   - 汰換牌可反覆挑選，不會點一次就鎖死。
+   - 汰換與不換按鈕下方常駐。
    ============================================================ */
 
 import {
@@ -61,65 +60,65 @@ const SCENE_CHOICES = {
   ev_pantry_invite: {
     question: "她問你下班要不要一起走，你要先怎麼回？",
     options: [
-      { label: "是，直接答應", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "答應得這麼快？好，至少這次沒有當機。" }] },
-      { label: "否，先假裝很忙", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你桌上明明只有空杯子，忙什麼？忙著逃避嗎？" }] },
-      { label: "反問：有含晚餐嗎？", effects: { comedy: 2, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你的人生是不是所有邀約都要先判斷能不能吃？" }] },
+      { label: "是，直接答應", say: "好啊，一起走。", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "答應得這麼快？好，至少這次沒有當機。" }] },
+      { label: "否，先假裝很忙", say: "我可能有點忙。", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你桌上明明只有空杯子，忙什麼？忙著逃避嗎？" }] },
+      { label: "反問：有含晚餐嗎？", say: "那這個一起走，有含晚餐嗎？", effects: { comedy: 2, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你的人生是不是所有邀約都要先判斷能不能吃？" }] },
     ],
   },
   ev_elevator: {
     question: "電梯裡突然安靜，你要怎麼打破沉默？",
     options: [
-      { label: "問她今天累不累", effects: { favorability: 2, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你居然會問正常問題，我有點不習慣。" }] },
-      { label: "盯著樓層燈裝冷靜", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你盯得像電梯欠你錢。" }] },
-      { label: "說這電梯很適合展開劇情", effects: { comedy: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要在密閉空間展開任何東西。" }] },
+      { label: "問她今天累不累", say: "妳今天是不是很累？", effects: { favorability: 2, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你居然會問正常問題，我有點不習慣。" }] },
+      { label: "盯著樓層燈裝冷靜", say: "這個樓層燈……滿穩的。", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你盯得像電梯欠你錢。" }] },
+      { label: "說這電梯很適合展開劇情", say: "這個電梯很適合展開劇情。", effects: { comedy: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要在密閉空間展開任何東西。" }] },
     ],
   },
   ev_conv_store: {
     question: "便利商店冰櫃前，她問你想吃哪個，你選？",
     options: [
-      { label: "牛奶冰棒", effects: { favorability: 1, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "很安全的答案，跟你本人不太一樣。" }] },
-      { label: "巧克力脆皮", effects: { appetite: 3, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你眼神突然亮了，冰棒比我有吸引力是不是？" }] },
-      { label: "我都要", effects: { appetite: 5, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你不是選擇困難，你是胃口太大。" }] },
+      { label: "牛奶冰棒", say: "牛奶冰棒好了。", effects: { favorability: 1, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "很安全的答案，跟你本人不太一樣。" }] },
+      { label: "巧克力脆皮", say: "巧克力脆皮。這個很穩。", effects: { appetite: 3, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你眼神突然亮了，冰棒比我有吸引力是不是？" }] },
+      { label: "我都要", say: "我都要。", effects: { appetite: 5, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你不是選擇困難，你是胃口太大。" }] },
     ],
   },
   ev_dinner_shop: {
     question: "晚餐店老闆問要不要加湯圓，你要？",
     options: [
-      { label: "是，加一份", effects: { appetite: 4, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你答應加湯圓的速度比答應約會還快。" }] },
-      { label: "否，先留胃給下次", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "下次？你這句話倒是滿會鋪梗的。" }] },
-      { label: "問她要不要分你一顆", effects: { favorability: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "可以，但你要自己說這不是搶食物，是交流感情。" }] },
+      { label: "是，加一份", say: "加一份。", effects: { appetite: 4, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你答應加湯圓的速度比答應約會還快。" }] },
+      { label: "否，先留胃給下次", say: "先不要，留胃給下次。", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "下次？你這句話倒是滿會鋪梗的。" }] },
+      { label: "問她要不要分你一顆", say: "妳要不要分我一顆？", effects: { favorability: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "可以，但你要自己說這不是搶食物，是交流感情。" }] },
     ],
   },
   ev_night_market: {
     question: "夜市人很多，她問要不要牽著走，你要？",
     options: [
-      { label: "是，伸手", effects: { favorability: 4, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "這次你倒是沒有搞砸。手不要抖成那樣就更好了。" }] },
-      { label: "否，嘴硬說不會走散", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛才差點跟鹽酥雞攤走。" }] },
-      { label: "提議用地瓜球當路標", effects: { comedy: 3, appetite: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你不要把戀愛路線規劃成美食導航。" }] },
+      { label: "是，伸手", say: "好，那我牽著妳。", effects: { favorability: 4, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "這次你倒是沒有搞砸。手不要抖成那樣就更好了。" }] },
+      { label: "否，嘴硬說不會走散", say: "不用啦，我不會走散。", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛才差點跟鹽酥雞攤走。" }] },
+      { label: "提議用地瓜球當路標", say: "我們可以用地瓜球當路標。", effects: { comedy: 3, appetite: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你不要把戀愛路線規劃成美食導航。" }] },
     ],
   },
   ev_gossip: {
     question: "同事開始八卦你們，你要怎麼處理？",
     options: [
-      { label: "大方說只是一起吃飯", effects: { sincerity: 2, favorability: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "至少你這次沒有越描越黑。" }] },
-      { label: "裝死滑手機", effects: { awkwardness: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你現在裝死，只會讓他們覺得真的有事。" }] },
-      { label: "反問：你們要入股嗎？", effects: { comedy: 4, social_death: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要把八卦講成募資案！" }] },
+      { label: "大方說只是一起吃飯", say: "我們只是一起吃飯。", effects: { sincerity: 2, favorability: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "至少你這次沒有越描越黑。" }] },
+      { label: "裝死滑手機", say: "……我先看一下手機。", effects: { awkwardness: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你現在裝死，只會讓他們覺得真的有事。" }] },
+      { label: "反問：你們要入股嗎？", say: "你們要入股嗎？", effects: { comedy: 4, social_death: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要把八卦講成募資案！" }] },
     ],
   },
   ev_meeting_room: {
     question: "會議室氣氛很硬，你要先做什麼？",
     options: [
-      { label: "認真看資料", effects: { sincerity: 2, confidence: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "你認真起來還是有點可靠，雖然只有一點。" }] },
-      { label: "先喝水拖時間", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你那杯水已經被你喝出戰術價值了。" }] },
-      { label: "提議用抽卡決定簡報順序", effects: { comedy: 3, social_death: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "shock", text: "不要把會議變成迷因卡池。" }] },
+      { label: "認真看資料", say: "我先看一下資料。", effects: { sincerity: 2, confidence: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "你認真起來還是有點可靠，雖然只有一點。" }] },
+      { label: "先喝水拖時間", say: "我先喝口水。", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你那杯水已經被你喝出戰術價值了。" }] },
+      { label: "提議用抽卡決定簡報順序", say: "不然我們用抽卡決定簡報順序？", effects: { comedy: 3, social_death: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "shock", text: "不要把會議變成迷因卡池。" }] },
     ],
   },
   ev_confession: {
     question: "告白前最後一秒，你要先做什麼？",
     options: [
-      { label: "深呼吸，直視她", effects: { sincerity: 4, favorability: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你這次看起來像是真的有話想說。" }] },
-      { label: "先開玩笑緩和氣氛", effects: { comedy: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你很緊張對吧？笑點都開始冒汗了。" }] },
-      { label: "突然問她餓不餓", effects: { appetite: 4, comedy: 2, awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你連告白前都能接到吃飯線，真的很 Gumayuwei。" }] },
+      { label: "深呼吸，直視她", say: "我有話想跟妳說。", effects: { sincerity: 4, favorability: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你這次看起來像是真的有話想說。" }] },
+      { label: "先開玩笑緩和氣氛", say: "如果我現在講錯話，妳可以當作系統錯誤嗎？", effects: { comedy: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你很緊張對吧？笑點都開始冒汗了。" }] },
+      { label: "突然問她餓不餓", say: "妳……餓不餓？", effects: { appetite: 4, comedy: 2, awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你連告白前都能接到吃飯線，真的很 Gumayuwei。" }] },
     ],
   },
 };
@@ -384,7 +383,8 @@ function chooseSceneOption(option) {
   applyEffects(option.effects || {});
   adjustToleranceFromEffects(option.effects || {});
   renderHud(Object.keys(option.effects || {}));
-  playScript(option.script || [], () => {
+  const playerLine = { type: "dialogue", speaker: "guma", emotion: "smile", text: option.say || option.label };
+  playScript([playerLine, ...(option.script || [])], () => {
     if (state.emergencyPending) maybeEmergencyMission();
     else openHand();
   });
@@ -561,28 +561,46 @@ function emergencyFail(reasonKey = "no_card") {
   showEnding();
 }
 
+function buildSwapCardButton(cardId) {
+  const card = getCard(cardId);
+  const btn = document.createElement("button");
+  btn.className = `card swap-select-card${state.pendingDiscard === cardId ? " selected-card" : ""}`;
+  btn.innerHTML = `
+    <div class="card-art"><span class="card-rarity rarity-${esc(card.rarity)}">${esc(card.rarity)}</span><span class="placeholder-line">「${esc(card.line)}」</span></div>
+    <div class="card-meta"><div class="card-name">${esc(card.name)}</div><div class="card-desc">${esc(card.description)}</div></div>`;
+  tryLoadCardArt(btn.querySelector(".card-art"), card);
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    selectSwapCard(cardId);
+  });
+  return btn;
+}
+function renderSwapHand() {
+  const box = $("swap-hand");
+  box.innerHTML = "";
+  state.hand.forEach((id) => box.appendChild(buildSwapCardButton(id)));
+}
 function openSwap() {
   if (state.pendingNext === "ending") { goNext(); return; }
   state.mode = "swap";
   state.pendingDiscard = null;
-  $("swap-hint").textContent = "選擇 1 張想汰換的手牌，確認後會翻出一張新牌補進手牌。";
+  $("swap-hint").textContent = "選擇 1 張想汰換的手牌，可反覆改選；確認後會翻出一張新牌補進手牌。";
   $("swap-result").classList.add("hidden");
   $("swap-result").innerHTML = "";
   $("btn-confirm-swap").disabled = true;
   $("btn-confirm-swap").classList.add("disabled");
-  const box = $("swap-hand");
-  box.innerHTML = "";
-  state.hand.forEach((id) => box.appendChild(buildCardButton(id, selectSwapCard)));
+  renderSwapHand();
   $("swap-overlay").classList.remove("hidden");
 }
 function selectSwapCard(discardId) {
   state.pendingDiscard = discardId;
   const card = getCard(discardId);
-  $("swap-hint").textContent = `確定要汰換「${card.name}」嗎？`;
-  $("swap-result").textContent = "選擇「確認汰換」後會直接翻出新牌。";
+  $("swap-hint").textContent = `目前選擇汰換「${card.name}」。可以再點其他手牌改選。`;
+  $("swap-result").textContent = "按下方「確認汰換」後才會真正換牌。";
   $("swap-result").classList.remove("hidden");
   $("btn-confirm-swap").disabled = false;
   $("btn-confirm-swap").classList.remove("disabled");
+  renderSwapHand();
 }
 function confirmSwap() {
   if (!state.pendingDiscard) return;
