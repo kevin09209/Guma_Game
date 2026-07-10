@@ -1,6 +1,7 @@
 /* ============================================================
-   v0.4.2 轉場演出升級
+   v0.4.2 / v0.5.2 轉場演出升級
    調整版：只有真正換場景時才出現過場，不在每個 UI 動作都 loading。
+   Phase 2：強化選卡爽感、卡片確認、凍結節奏、cut-in pulse。
    ============================================================ */
 
 :root {
@@ -38,9 +39,7 @@
   animation: sceneIntroCard 1180ms var(--ease-premium) both;
 }
 
-#transition-wipe::after {
-  content: "";
-}
+#transition-wipe::after { content: ""; }
 
 .scene-card {
   min-width: 460px;
@@ -54,9 +53,7 @@
   transform: translateY(12px) scale(0.98);
 }
 
-#transition-wipe.active .scene-card {
-  animation: sceneCardTextIn 900ms var(--ease-premium) both;
-}
+#transition-wipe.active .scene-card { animation: sceneCardTextIn 900ms var(--ease-premium) both; }
 
 .scene-kicker {
   color: rgba(255, 211, 77, 0.78);
@@ -95,54 +92,42 @@
   100% { opacity: 0; transform: translateY(-10px) scale(1.015); }
 }
 
-.bg.scene-entering {
-  animation: bgPremiumIn 780ms var(--ease-premium) both;
-}
+.bg.scene-entering { animation: bgPremiumIn 780ms var(--ease-premium) both; }
 
 @keyframes bgPremiumIn {
   0% { opacity: 0; transform: scale(1.045); filter: blur(8px) brightness(0.78); }
   100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
 }
 
-.sprite.scene-fade-in {
-  animation: spriteFadeIn 640ms var(--ease-premium) both;
-}
+.sprite.scene-fade-in { animation: spriteFadeIn 640ms var(--ease-premium) both; }
 
 @keyframes spriteFadeIn {
   0% { opacity: 0; transform: scale(0.985); filter: blur(4px) brightness(0.76); }
   100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
 }
 
-.dialog.dialog-enter {
-  animation: dialogPremiumIn 300ms var(--ease-premium) both;
-}
+.dialog.dialog-enter { animation: dialogPremiumIn 300ms var(--ease-premium) both; }
 
 @keyframes dialogPremiumIn {
   0% { opacity: 0; transform: translateY(14px); filter: blur(3px); }
   100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
-.nameplate.nameplate-pop {
-  animation: nameplatePop 240ms var(--ease-snap) both;
-}
+.nameplate.nameplate-pop { animation: nameplatePop 240ms var(--ease-snap) both; }
 
 @keyframes nameplatePop {
   0% { opacity: 0; transform: translateY(5px) scale(0.94); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.hand-overlay.hand-enter {
-  animation: handOverlayIn 260ms ease-out both;
-}
+.hand-overlay.hand-enter { animation: handOverlayIn 260ms ease-out both; }
 
 @keyframes handOverlayIn {
   0% { opacity: 0; backdrop-filter: blur(0); }
   100% { opacity: 1; backdrop-filter: blur(3px); }
 }
 
-.hand-overlay .choice-context {
-  animation: contextIn 280ms var(--ease-premium) both;
-}
+.hand-overlay .choice-context { animation: contextIn 280ms var(--ease-premium) both; }
 
 @keyframes contextIn {
   0% { opacity: 0; transform: translateY(12px); }
@@ -159,24 +144,55 @@
   100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); filter: blur(0); }
 }
 
-.hand .card.selected-card {
+.hand .card.selected-card,
+.hand-small .card.selected-card {
   position: relative;
   z-index: 4;
   animation: selectedCardConfirm 300ms var(--ease-snap) both;
   border-color: var(--accent);
-  box-shadow: 0 0 34px rgba(255, 211, 77, 0.48), 0 18px 45px rgba(0, 0, 0, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(255, 211, 77, 0.75),
+    0 0 34px rgba(255, 211, 77, 0.48),
+    0 18px 45px rgba(0, 0, 0, 0.65);
 }
 
-.hand .card.dim-card {
-  opacity: 0.28;
-  filter: grayscale(0.8) blur(1px);
+.hand .card.selected-card::after,
+.hand-small .card.selected-card::after {
+  content: "SELECTED";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 14px rgba(255, 211, 77, 0.65);
+}
+
+.hand .card.dim-card,
+.hand-small .card.dim-card {
+  opacity: 0.22;
+  filter: grayscale(0.85) blur(1px);
   transform: scale(0.94);
+}
+
+.card-pick-freeze .choice-context,
+.card-pick-freeze .swap-title,
+.card-pick-freeze .rescue-title {
+  animation: chosenContextPulse 260ms ease-out both;
 }
 
 @keyframes selectedCardConfirm {
   0% { transform: translateY(0) scale(1); }
-  60% { transform: translateY(-30px) scale(1.1) rotate(-1.5deg); }
-  100% { transform: translateY(-20px) scale(1.07) rotate(-1deg); }
+  60% { transform: translateY(-34px) scale(1.13) rotate(-1.5deg); }
+  100% { transform: translateY(-22px) scale(1.08) rotate(-1deg); }
+}
+
+@keyframes chosenContextPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
 }
 
 .cutin.v042-cutin-pulse .cutin-card {
@@ -200,9 +216,7 @@
   100% { opacity: 1; transform: rotateY(0) translateY(0) scale(1); filter: blur(0); }
 }
 
-.ending-title {
-  animation: endingTitleIn 520ms var(--ease-premium) both;
-}
+.ending-title { animation: endingTitleIn 520ms var(--ease-premium) both; }
 
 @keyframes endingTitleIn {
   0% { opacity: 0; transform: translateY(18px) scale(0.96); letter-spacing: 0.12em; filter: blur(6px); }
