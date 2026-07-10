@@ -25,9 +25,20 @@ export function fitStage() {
 export const rarityBadge = (card, extraClass = "") =>
   `<span class="card-rarity rarity-${esc(card.rarity)} ${extraClass}">${esc(card.rarity)}</span>`;
 
+function pulseStage(className, duration = 320) {
+  const stage = $("stage");
+  if (!stage) return;
+  stage.classList.remove(className);
+  void stage.offsetWidth;
+  stage.classList.add(className);
+  window.setTimeout(() => stage.classList.remove(className), duration);
+}
+
 function playCardPickFeedback(btn, cardId, onClick) {
   const group = btn.closest(".hand") || btn.parentElement;
   const cards = group ? Array.from(group.querySelectorAll(".card")) : [btn];
+
+  pulseStage("card-pick-flash", 320);
 
   cards.forEach((cardButton) => {
     cardButton.disabled = true;
