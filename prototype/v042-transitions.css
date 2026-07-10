@@ -21,6 +21,24 @@
   opacity: 0.7;
 }
 
+#stage.card-pick-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 29;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.42), transparent 28%),
+    linear-gradient(90deg, transparent, rgba(255, 211, 77, 0.28), transparent);
+  animation: cardPickFlash 320ms ease-out both;
+}
+
+@keyframes cardPickFlash {
+  0% { opacity: 0; transform: scaleX(0.82); filter: blur(8px); }
+  35% { opacity: 1; transform: scaleX(1); filter: blur(0); }
+  100% { opacity: 0; transform: scaleX(1.08); filter: blur(10px); }
+}
+
 #transition-wipe {
   position: absolute;
   inset: 0;
