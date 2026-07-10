@@ -3,14 +3,15 @@
    ------------------------------------------------------------
    /data 的 JSON 是「內容」，這個模組是唯一的讀取入口。
 
-   v0.5.3：補齊全卡 × 全場景矩陣
+   v0.5.4：全卡 × 全場景 × 每卡專屬女主回覆
    - 手寫 card_results 永遠優先。
    - phase2 補充檔次優先。
-   - 仍缺漏時，依卡片 tags、場景 tags、女主喜好自動產生情境反應與分數。
-   - 目標：每張卡在每個場景都有不同反應，不再落入完全通用 fallback。
+   - 自動補齊時優先讀取 card_reaction_profiles.json。
+   - 每張卡都有自己的女主吐槽語氣與 score_bias。
+   - 同一張卡在不同場景仍會因場景 tags / 女主喜好得到不同分數。
    ============================================================ */
 
-export const DATA = { cards: [], heroines: [], scenes: [], endings: [], start: "", repeatReactions: {} };
+export const DATA = { cards: [], heroines: [], scenes: [], endings: [], start: "", repeatReactions: {}, reactionProfiles: {} };
 
 // 資料裡的資源路徑（assets/...）是從專案根目錄算的；頁面在 prototype/ 下
 export const assetPath = (p) => "../" + p;
@@ -52,6 +53,17 @@ function sceneMood(scene) {
   return { key: "default", prompt: scene.title || "目前情境", place: scene.location || "現場", soft: 0 };
 }
 
+function renderTemplate(text, { card, scene, heroine, mood }) {
+  return String(text || "")
+    .replaceAll("{card_id}", card.id)
+    .replaceAll("{card_name}", card.name)
+    .replaceAll("{card_line}", card.line)
+    .replaceAll("{scene_title}", scene.title || "目前場景")
+    .replaceAll("{place}", mood.place)
+    .replaceAll("{prompt}", mood.prompt)
+    .replaceAll("{heroine_name}", heroine.name || "女主角");
+}
+
 function cardPersona(card) {
   const tags = card.tags || [];
   if (hasAny(tags, ["食物"])) return "food";
@@ -64,7 +76,20 @@ function cardPersona(card) {
   return "weird";
 }
 
-function heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked }) {
+function profileReaction({ profile, scene, card, heroine, danger, disliked }) {
+  const mood = sceneMood(scene);
+  const templateVars = { card, scene, heroine, mood };
+  const dangerLine = danger || disliked ? ` 但這裡是${mood.place}，所以風險直接加倍。` : "";
+  return {
+    emotion: profile.emotion || "smile",
+    text: `${renderTemplate(profile.heroine_text, templateVars)}${dangerLine}`,
+    note: renderTemplate(profile.note, templateVars),
+  };
+}
+
+function heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked, profile }) {
+  if (profile) return profileReaction({ profile, scene, card, heroine, danger, disliked });
+
   const mood = sceneMood(scene);
   const name = card.name;
   const line = card.line;
@@ -128,7 +153,7 @@ function heroineReaction({ persona, scene, card, heroine, danger, preferred, lik
   };
 }
 
-function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked }) {
+function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked, profile }) {
   const base = card.effects || {};
   const mood = sceneMood(scene);
   const effects = {
@@ -158,7 +183,11 @@ function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred
   if (mood.key === "confession") effects.sincerity += 2;
   if (mood.key === "meeting" || mood.key === "gossip") effects.social_death += danger ? 2 : 1;
 
-  Object.keys(effects).forEach((key) => { effects[key] = clamp(effects[key], -6, 14); });
+  Object.entries(profile?.score_bias || {}).forEach(([key, delta]) => {
+    if (key in effects) effects[key] += Number(delta) || 0;
+  });
+
+  Object.keys(effects).forEach((key) => { effects[key] = clamp(effects[key], -8, 16); });
   return effects;
 }
 
@@ -170,9 +199,10 @@ function synthesizeCardResult(scene, card) {
   const liked = hasAny(tags, heroine.likes || []);
   const disliked = hasAny(tags, heroine.dislikes || []);
   const persona = cardPersona(card);
+  const profile = DATA.reactionProfiles[card.id];
   const mood = sceneMood(scene);
-  const reaction = heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked });
-  const effects = scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked });
+  const reaction = heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked, profile });
+  const effects = scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked, profile });
 
   const gumaEmotion = persona === "chaos" || persona === "risky" ? "shout" : persona === "silent" ? "dots" : persona === "cute" ? "smile" : "shock";
 
@@ -199,12 +229,13 @@ function fillMissingCardResults() {
 }
 
 export async function loadData() {
-  const [cards, heroines, scenes, endings, phase2] = await Promise.all([
+  const [cards, heroines, scenes, endings, phase2, reactionProfiles] = await Promise.all([
     fetch("../data/cards.json").then((r) => r.json()),
     fetch("../data/heroines.json").then((r) => r.json()),
     fetch("../data/scenes.json").then((r) => r.json()),
     fetch("../data/endings.json").then((r) => r.json()),
     fetchOptionalJson("../data/scene_card_results_phase2.json", {}),
+    fetchOptionalJson("../data/card_reaction_profiles.json", {}),
   ]);
   DATA.cards = cards.cards;
   DATA.heroines = heroines.heroines;
@@ -212,6 +243,7 @@ export async function loadData() {
   DATA.start = scenes.start;
   DATA.repeatReactions = scenes.repeat_reactions || {};
   DATA.endings = endings.endings;
+  DATA.reactionProfiles = reactionProfiles.profiles || {};
   mergePhase2CardResults(phase2);
   fillMissingCardResults();
 }
