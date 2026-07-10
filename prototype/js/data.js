@@ -3,9 +3,10 @@
    ------------------------------------------------------------
    /data 的 JSON 是「內容」，這個模組是唯一的讀取入口。
 
-   v0.5.4：全卡 × 全場景 × 每卡專屬女主回覆
+   v0.5.5：告白場景 UR / SSR 精修
    - 手寫 card_results 永遠優先。
    - phase2 補充檔次優先。
+   - v0.5.5 告白精修檔會覆蓋 phase2 / 自動產生結果。
    - 自動補齊時優先讀取 card_reaction_profiles.json。
    - 每張卡都有自己的女主吐槽語氣與 score_bias。
    - 同一張卡在不同場景仍會因場景 tags / 女主喜好得到不同分數。
@@ -26,8 +27,8 @@ async function fetchOptionalJson(path, fallback) {
   }
 }
 
-function mergePhase2CardResults(phase2) {
-  const sceneResults = phase2?.scene_card_results || {};
+function mergeSceneCardResults(supplement) {
+  const sceneResults = supplement?.scene_card_results || {};
   DATA.scenes.forEach((scene) => {
     const extra = sceneResults[scene.scene_id];
     if (!extra) return;
@@ -229,12 +230,13 @@ function fillMissingCardResults() {
 }
 
 export async function loadData() {
-  const [cards, heroines, scenes, endings, phase2, reactionProfiles] = await Promise.all([
+  const [cards, heroines, scenes, endings, phase2, v055Confession, reactionProfiles] = await Promise.all([
     fetch("../data/cards.json").then((r) => r.json()),
     fetch("../data/heroines.json").then((r) => r.json()),
     fetch("../data/scenes.json").then((r) => r.json()),
     fetch("../data/endings.json").then((r) => r.json()),
     fetchOptionalJson("../data/scene_card_results_phase2.json", {}),
+    fetchOptionalJson("../data/scene_card_results_v055_confession.json", {}),
     fetchOptionalJson("../data/card_reaction_profiles.json", {}),
   ]);
   DATA.cards = cards.cards;
@@ -244,7 +246,8 @@ export async function loadData() {
   DATA.repeatReactions = scenes.repeat_reactions || {};
   DATA.endings = endings.endings;
   DATA.reactionProfiles = reactionProfiles.profiles || {};
-  mergePhase2CardResults(phase2);
+  mergeSceneCardResults(phase2);
+  mergeSceneCardResults(v055Confession);
   fillMissingCardResults();
 }
 
