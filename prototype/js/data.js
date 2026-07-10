@@ -3,18 +3,23 @@
    ------------------------------------------------------------
    /data 的 JSON 是「內容」，這個模組是唯一的讀取入口。
 
-   v0.5.5：告白場景 UR / SSR 精修
-   - 手寫 card_results 永遠優先。
-   - phase2 補充檔次優先。
-   - v0.5.5 告白精修檔會覆蓋 phase2 / 自動產生結果。
-   - 自動補齊時優先讀取 card_reaction_profiles.json。
-   - 每張卡都有自己的女主吐槽語氣與 score_bias。
-   - 同一張卡在不同場景仍會因場景 tags / 女主喜好得到不同分數。
+   v0.6.0：
+   - 場景選擇題移至 scene_choices.json。
+   - 緊急壞結局移至 emergency_endings.json 並併入結局圖鑑。
+   - 手寫 card_results 永遠優先，缺漏才由反應人格補齊。
    ============================================================ */
 
-export const DATA = { cards: [], heroines: [], scenes: [], endings: [], start: "", repeatReactions: {}, reactionProfiles: {} };
+export const DATA = {
+  cards: [],
+  heroines: [],
+  scenes: [],
+  endings: [],
+  start: "",
+  repeatReactions: {},
+  reactionProfiles: {},
+  sceneChoices: {},
+};
 
-// 資料裡的資源路徑（assets/...）是從專案根目錄算的；頁面在 prototype/ 下
 export const assetPath = (p) => "../" + p;
 
 async function fetchOptionalJson(path, fallback) {
@@ -32,10 +37,7 @@ function mergeSceneCardResults(supplement) {
   DATA.scenes.forEach((scene) => {
     const extra = sceneResults[scene.scene_id];
     if (!extra) return;
-    scene.card_results = {
-      ...(scene.card_results || {}),
-      ...extra,
-    };
+    scene.card_results = { ...(scene.card_results || {}), ...extra };
   });
 }
 
@@ -79,82 +81,48 @@ function cardPersona(card) {
 
 function profileReaction({ profile, scene, card, heroine, danger, disliked }) {
   const mood = sceneMood(scene);
-  const templateVars = { card, scene, heroine, mood };
+  const vars = { card, scene, heroine, mood };
   const dangerLine = danger || disliked ? ` 但這裡是${mood.place}，所以風險直接加倍。` : "";
   return {
     emotion: profile.emotion || "smile",
-    text: `${renderTemplate(profile.heroine_text, templateVars)}${dangerLine}`,
-    note: renderTemplate(profile.note, templateVars),
+    text: `${renderTemplate(profile.heroine_text, vars)}${dangerLine}`,
+    note: renderTemplate(profile.note, vars),
   };
 }
 
 function heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked, profile }) {
   if (profile) return profileReaction({ profile, scene, card, heroine, danger, disliked });
-
   const mood = sceneMood(scene);
   const name = card.name;
   const line = card.line;
-
   const positive = preferred || liked;
   const negative = danger || disliked;
 
   if (negative && persona === "risky") {
-    return {
-      emotion: "tsukkomi",
-      text: `你在${mood.place}講「${line}」真的很勇。${name} 這張卡用在這裡，基本上是把氣氛推去加班。`,
-      note: `她先把吐槽權收回來，避免你繼續把${mood.prompt}變成災難。`,
-    };
+    return { emotion: "tsukkomi", text: `你在${mood.place}講「${line}」真的很勇。${name} 這張卡用在這裡，基本上是把氣氛推去加班。`, note: `她先把吐槽權收回來，避免你繼續把${mood.prompt}變成災難。` };
   }
   if (positive && persona === "food") {
-    return {
-      emotion: "smile",
-      text: `你只要跟吃的有關就突然很真誠。${name} 在${mood.place}意外合理。`,
-      note: `她嘴上嫌你貪吃，身體卻很誠實地往下一攤／下一碗移動。`,
-    };
+    return { emotion: "smile", text: `你只要跟吃的有關就突然很真誠。${name} 在${mood.place}意外合理。`, note: "她嘴上嫌你貪吃，身體卻很誠實地往下一攤／下一碗移動。" };
   }
   if (positive && persona === "cute") {
-    return {
-      emotion: "laugh",
-      text: `好，${name} 這招很荒謬，但在${mood.place}有用。我先笑，等一下再嫌你。`,
-      note: `她笑到防線鬆動，現場的尷尬被包成一顆很醜但有效的糖。`,
-    };
+    return { emotion: "laugh", text: `好，${name} 這招很荒謬，但在${mood.place}有用。我先笑，等一下再嫌你。`, note: "她笑到防線鬆動，現場的尷尬被包成一顆很醜但有效的糖。" };
   }
   if (persona === "silent") {
-    return {
-      emotion: mood.key === "confession" ? "soft" : "dots",
-      text: `你又沉默了。可是這次的沉默在「${mood.prompt}」裡，居然有一點像是在認真。`,
-      note: `她沒有急著逼問，反而給了你幾秒鐘，把空氣留給你表演石化。`,
-    };
+    return { emotion: mood.key === "confession" ? "soft" : "dots", text: `你又沉默了。可是這次的沉默在「${mood.prompt}」裡，居然有一點像是在認真。`, note: "她沒有急著逼問，反而給了你幾秒鐘，把空氣留給你表演石化。" };
   }
   if (persona === "chaos") {
-    return {
-      emotion: "laugh",
-      text: `你每次一慌就把音量開到全公司都聽得到。${name} 很丟臉，但也很像你。`,
-      note: `旁人開始注意這邊，她一邊想逃，一邊又忍不住笑。`,
-    };
+    return { emotion: "laugh", text: `你每次一慌就把音量開到全公司都聽得到。${name} 很丟臉，但也很像你。`, note: "旁人開始注意這邊，她一邊想逃，一邊又忍不住笑。" };
   }
   if (persona === "smart") {
-    return {
-      emotion: positive ? "smile" : "shock",
-      text: `等一下，你居然把「${mood.prompt}」分析成作戰計畫？${name} 這張卡有點欠揍，但不算沒用。`,
-      note: `她重新評估你：也許你不是完全沒救，只是救法比較奇怪。`,
-    };
+    return { emotion: positive ? "smile" : "shock", text: `等一下，你居然把「${mood.prompt}」分析成作戰計畫？${name} 這張卡有點欠揍，但不算沒用。`, note: "她重新評估你：也許你不是完全沒救，只是救法比較奇怪。" };
   }
   if (persona === "fool") {
-    return {
-      emotion: "tsukkomi",
-      text: `你不要用「${line}」假裝逃過問題。${mood.prompt}不是選擇題，但我可以給你部分分數。`,
-      note: `她吐槽得很快，但沒有真的生氣，甚至替你把話接了下去。`,
-    };
+    return { emotion: "tsukkomi", text: `你不要用「${line}」假裝逃過問題。${mood.prompt}不是選擇題，但我可以給你部分分數。`, note: "她吐槽得很快，但沒有真的生氣，甚至替你把話接了下去。" };
   }
-  return {
-    emotion: negative ? "dots" : "smile",
-    text: `${name} 用在${mood.place}，效果很難說，但至少不是無聊的答案。`,
-    note: `她看著你三秒，決定把這件事記進「Gumayuwei 奇怪行為觀察筆記」。`,
-  };
+  return { emotion: negative ? "dots" : "smile", text: `${name} 用在${mood.place}，效果很難說，但至少不是無聊的答案。`, note: "她看著你三秒，決定把這件事記進「Gumayuwei 奇怪行為觀察筆記」。" };
 }
 
-function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked, profile }) {
+function scoreSyntheticResult({ card, scene, persona, danger, preferred, liked, disliked, profile }) {
   const base = card.effects || {};
   const mood = sceneMood(scene);
   const effects = {
@@ -167,12 +135,10 @@ function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred
     appetite: Math.round((base.appetite || 0) * 0.65),
     battle: Math.round((base.battle || 0) * 0.55),
   };
-
   if (preferred) effects.favorability += 2;
   if (liked) effects.favorability += 2;
   if (danger) { effects.awkwardness += 3; effects.social_death += 2; effects.favorability -= 2; }
   if (disliked) { effects.awkwardness += 2; effects.favorability -= 2; }
-
   if (persona === "food") effects.appetite += 4 + Math.max(0, mood.soft);
   if (persona === "cute") { effects.comedy += 3; effects.awkwardness -= 1; }
   if (persona === "risky") { effects.confidence += 4; effects.battle += 2; }
@@ -180,14 +146,9 @@ function scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred
   if (persona === "chaos") { effects.comedy += 4; effects.social_death += 3; }
   if (persona === "smart") { effects.confidence += 4; effects.comedy += 2; }
   if (persona === "fool") { effects.comedy += 2; effects.awkwardness += 1; }
-
   if (mood.key === "confession") effects.sincerity += 2;
   if (mood.key === "meeting" || mood.key === "gossip") effects.social_death += danger ? 2 : 1;
-
-  Object.entries(profile?.score_bias || {}).forEach(([key, delta]) => {
-    if (key in effects) effects[key] += Number(delta) || 0;
-  });
-
+  Object.entries(profile?.score_bias || {}).forEach(([key, delta]) => { if (key in effects) effects[key] += Number(delta) || 0; });
   Object.keys(effects).forEach((key) => { effects[key] = clamp(effects[key], -8, 16); });
   return effects;
 }
@@ -203,10 +164,8 @@ function synthesizeCardResult(scene, card) {
   const profile = DATA.reactionProfiles[card.id];
   const mood = sceneMood(scene);
   const reaction = heroineReaction({ persona, scene, card, heroine, danger, preferred, liked, disliked, profile });
-  const effects = scoreSyntheticResult({ card, scene, heroine, persona, danger, preferred, liked, disliked, profile });
-
+  const effects = scoreSyntheticResult({ card, scene, persona, danger, preferred, liked, disliked, profile });
   const gumaEmotion = persona === "chaos" || persona === "risky" ? "shout" : persona === "silent" ? "dots" : persona === "cute" ? "smile" : "shock";
-
   return {
     generated: true,
     script: [
@@ -223,14 +182,13 @@ function fillMissingCardResults() {
   DATA.scenes.forEach((scene) => {
     scene.card_results = scene.card_results || {};
     DATA.cards.forEach((card) => {
-      if (scene.card_results[card.id]) return;
-      scene.card_results[card.id] = synthesizeCardResult(scene, card);
+      if (!scene.card_results[card.id]) scene.card_results[card.id] = synthesizeCardResult(scene, card);
     });
   });
 }
 
 export async function loadData() {
-  const [cards, heroines, scenes, endings, phase2, v055Confession, reactionProfiles] = await Promise.all([
+  const [cards, heroines, scenes, endings, phase2, confession, profiles, choices, emergencyEndings] = await Promise.all([
     fetch("../data/cards.json").then((r) => r.json()),
     fetch("../data/heroines.json").then((r) => r.json()),
     fetch("../data/scenes.json").then((r) => r.json()),
@@ -238,27 +196,30 @@ export async function loadData() {
     fetchOptionalJson("../data/scene_card_results_phase2.json", {}),
     fetchOptionalJson("../data/scene_card_results_v055_confession.json", {}),
     fetchOptionalJson("../data/card_reaction_profiles.json", {}),
+    fetchOptionalJson("../data/scene_choices.json", {}),
+    fetchOptionalJson("../data/emergency_endings.json", {}),
   ]);
   DATA.cards = cards.cards;
   DATA.heroines = heroines.heroines;
   DATA.scenes = scenes.scenes;
   DATA.start = scenes.start;
   DATA.repeatReactions = scenes.repeat_reactions || {};
-  DATA.endings = endings.endings;
-  DATA.reactionProfiles = reactionProfiles.profiles || {};
+  DATA.reactionProfiles = profiles.profiles || {};
+  DATA.sceneChoices = choices.choices || {};
+  DATA.endings = [...(emergencyEndings.endings || []), ...(endings.endings || [])];
   mergeSceneCardResults(phase2);
-  mergeSceneCardResults(v055Confession);
+  mergeSceneCardResults(confession);
   fillMissingCardResults();
 }
 
-export const getCard = (id) => DATA.cards.find((c) => c.id === id);
-export const getHeroine = (id) => DATA.heroines.find((h) => h.id === id);
-export const getScene = (id) => DATA.scenes.find((s) => s.scene_id === id);
+export const getCard = (id) => DATA.cards.find((card) => card.id === id);
+export const getHeroine = (id) => DATA.heroines.find((heroine) => heroine.id === id);
+export const getScene = (id) => DATA.scenes.find((scene) => scene.scene_id === id);
+export const getEnding = (id) => DATA.endings.find((ending) => ending.ending_id === id);
 
-// 預先載入所有場景背景，換場時不會閃白（手機弱網尤其有感）
 export function preloadBackgrounds() {
   DATA.scenes.forEach((scene) => {
-    const img = new Image();
-    img.src = assetPath(scene.background);
+    const image = new Image();
+    image.src = assetPath(scene.background);
   });
 }
