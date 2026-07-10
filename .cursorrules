@@ -1,0 +1,23 @@
+# Gumayuwei 搞笑戀愛模擬器 — AI 協作守則（精簡版）
+# 完整版：docs/architecture-guidelines.md（動手前先讀）
+
+## 架構
+- /data = 內容（JSON），/prototype = 引擎（vanilla JS ES modules），/tests = 驗證
+- 內容與引擎分離：台詞、數值、機率、跳轉只改 JSON 或 js/config.js，不寫進邏輯
+- 模組職責：main.js 單局流程；js/storage.js 唯一碰 localStorage；js/data.js 載入後唯讀；
+  js/gacha.js 跨局收集；js/audio.js BGM（程序生成）；js/ui.js 共用 UI 工具
+
+## 鐵律
+1. 禁止 hotfix/override 補丁檔與全域覆寫函式——修主檔，跑測試
+2. 資料字串進 innerHTML 必經 ui.js 的 esc()
+3. localStorage 只透過 storage.js（已含 try/catch 降級）
+4. 不引入框架、打包器、建置步驟（刻意決策，見完整版 §6）
+5. endings.json 順序即優先序，最後一項必須是無條件保底
+6. 場景結果的 next 必須指向存在的場景或 "ending"
+7. 註解用繁體中文，解釋「為什麼」
+
+## 改動後必跑
+- 改 /data JSON       → node tests/validate.js
+- 改平衡（數值/條件） → node tests/simulate.js（13 結局全可達＋分布合理）
+- 改引擎/UI           → node tests/e2e.js（需 playwright＋http://localhost:8000）
+- 測試用 ?hand= 固定起手牌；開局抽卡會頂掉手牌第 5 格，測試卡放前 4 格
