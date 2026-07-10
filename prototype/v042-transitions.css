@@ -1,0 +1,189 @@
+/* ============================================================
+   v0.4.2 轉場演出升級
+   外掛式動畫層：不改主流程資料，只提升畫面質感。
+   ============================================================ */
+
+:root {
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.25) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 25%, rgba(0, 0, 0, 0.10));
+  opacity: 0.7;
+}
+
+#transition-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 211, 77, 0.24), transparent 42%),
+    linear-gradient(135deg, rgba(13, 13, 24, 0.96), rgba(32, 26, 52, 0.96));
+}
+
+#transition-wipe.active {
+  animation: sceneWipe 720ms var(--ease-premium) both;
+}
+
+@keyframes sceneWipe {
+  0% { opacity: 0; transform: scale(1.04); filter: blur(8px); }
+  38% { opacity: 1; transform: scale(1); filter: blur(0); }
+  62% { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.04); filter: blur(8px); }
+}
+
+#transition-wipe::after {
+  content: "LOADING NEXT SCENE";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 211, 77, 0.82);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-shadow: 0 0 18px rgba(255, 211, 77, 0.35);
+}
+
+.bg.scene-entering {
+  animation: bgPremiumIn 780ms var(--ease-premium) both;
+}
+
+@keyframes bgPremiumIn {
+  0% { opacity: 0.58; transform: scale(1.055); filter: blur(10px) brightness(0.78); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+}
+
+.sprite.scene-enter-left {
+  animation: spriteEnterLeft 620ms var(--ease-premium) both;
+}
+.sprite.scene-enter-right {
+  animation: spriteEnterRight 620ms var(--ease-premium) both;
+}
+
+@keyframes spriteEnterLeft {
+  0% { opacity: 0; transform: translateX(-46px) scale(0.98); filter: blur(4px) brightness(0.7); }
+  100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0) brightness(1); }
+}
+@keyframes spriteEnterRight {
+  0% { opacity: 0; transform: translateX(46px) scale(0.98); filter: blur(4px) brightness(0.7); }
+  100% { opacity: 1; transform: translateX(0) scale(1); filter: blur(0) brightness(1); }
+}
+
+.dialog.dialog-enter {
+  animation: dialogPremiumIn 360ms var(--ease-premium) both;
+}
+
+@keyframes dialogPremiumIn {
+  0% { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.nameplate.nameplate-pop {
+  animation: nameplatePop 260ms var(--ease-snap) both;
+}
+
+@keyframes nameplatePop {
+  0% { opacity: 0; transform: translateY(5px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hand-overlay.hand-enter {
+  animation: handOverlayIn 300ms ease-out both;
+}
+
+@keyframes handOverlayIn {
+  0% { opacity: 0; backdrop-filter: blur(0); }
+  100% { opacity: 1; backdrop-filter: blur(3px); }
+}
+
+.hand-overlay .choice-context {
+  animation: contextIn 300ms var(--ease-premium) both;
+}
+
+@keyframes contextIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.hand-overlay .hand .card {
+  animation: cardFanIn 360ms var(--ease-snap) both;
+  animation-delay: calc(var(--card-index, 0) * 62ms);
+}
+
+@keyframes cardFanIn {
+  0% { opacity: 0; transform: translateY(52px) rotate(2deg) scale(0.92); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); filter: blur(0); }
+}
+
+.hand .card.selected-card {
+  position: relative;
+  z-index: 4;
+  animation: selectedCardConfirm 330ms var(--ease-snap) both;
+  border-color: var(--accent);
+  box-shadow: 0 0 34px rgba(255, 211, 77, 0.48), 0 18px 45px rgba(0, 0, 0, 0.65);
+}
+
+.hand .card.dim-card {
+  opacity: 0.28;
+  filter: grayscale(0.8) blur(1px);
+  transform: scale(0.94);
+}
+
+@keyframes selectedCardConfirm {
+  0% { transform: translateY(0) scale(1); }
+  60% { transform: translateY(-34px) scale(1.12) rotate(-1.5deg); }
+  100% { transform: translateY(-22px) scale(1.08) rotate(-1deg); }
+}
+
+.cutin.v042-cutin-pulse .cutin-card {
+  animation: cardIn 0.45s cubic-bezier(0.2, 1.4, 0.4, 1), cutinPulse 920ms ease-out 1;
+}
+
+@keyframes cutinPulse {
+  0% { box-shadow: 0 0 0 rgba(255, 211, 77, 0); }
+  42% { box-shadow: 0 0 92px rgba(255, 211, 77, 0.62), 0 0 120px rgba(255, 255, 255, 0.12); }
+  100% { box-shadow: 0 0 60px rgba(255, 211, 77, 0.45), 0 24px 60px rgba(0, 0, 0, 0.7); }
+}
+
+.swap-overlay, #screen-run-draw, #screen-gacha, #screen-collection, #screen-endings, #screen-ending {
+  animation-duration: 360ms;
+  animation-timing-function: var(--ease-premium);
+}
+
+.gacha-card {
+  transform-origin: center bottom;
+  animation: drawReveal 420ms var(--ease-snap) both;
+}
+
+@keyframes drawReveal {
+  0% { opacity: 0; transform: rotateY(72deg) translateY(28px) scale(0.9); filter: blur(6px); }
+  68% { opacity: 1; transform: rotateY(-8deg) translateY(-4px) scale(1.04); filter: blur(0); }
+  100% { opacity: 1; transform: rotateY(0) translateY(0) scale(1); filter: blur(0); }
+}
+
+.ending-title {
+  animation: endingTitleIn 620ms var(--ease-premium) both;
+}
+
+@keyframes endingTitleIn {
+  0% { opacity: 0; transform: translateY(18px) scale(0.96); letter-spacing: 0.12em; filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: normal; filter: blur(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
