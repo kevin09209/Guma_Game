@@ -1,19 +1,11 @@
 /* ============================================================
    main.js — 遊戲流程引擎（單局狀態機）
    ------------------------------------------------------------
-   模組分工（詳見 docs/architecture-guidelines.md）：
-   - js/config.js  常數與平衡參數
-   - js/storage.js 玩家持久資料（唯一碰 localStorage 的地方）
-   - js/data.js    /data JSON 的載入與查詢（載入後唯讀）
-   - js/ui.js      共用 UI 工具（esc、卡片按鈕、舞台縮放）
-   - js/gacha.js   抽卡經濟、收藏、結局圖鑑（跨局系統）
-   - js/audio.js   BGM 與音效（Web Audio 程序生成）
-   - main.js       單局流程：劇本播放 → 出牌 → 補救/緊急任務 → 汰換 → 跳轉 → 結局
-
-   v0.5.7：等等！！！救援骰
-   - 忍受條歸零時，Gumayuwei 先大喊「等等！！！」再進入救援。
-   - 1~3：乘上該救援卡在當前場景對應的效果數值。
-   - 4~6：直接進入對應緊急壞結局。
+   v0.5.8：場景選擇 × 翻面汰換
+   - 每個場景在道具卡前新增簡單選擇題。
+   - 汰換牌改成：選牌 → 確認 → 翻面補牌。
+   - 補牌牌庫排除目前手牌。
+   - 緊急骰 UI 簡化：4 Four! / 5 水床沒玩到 / 6 完全法克。
    ============================================================ */
 
 import {
@@ -30,12 +22,12 @@ const TOLERANCE_MAX = 100;
 const TOLERANCE_EMERGENCY_THRESHOLD = 0;
 const EMERGENCY_RARITY_MIN = RARITY_ORDER.SSR;
 const DICE_FACES = {
-  1: { type: "success", key: "one", label: "1", line: "救援卡場景效果 ×1", multiplier: 1 },
-  2: { type: "success", key: "two", label: "2", line: "救援卡場景效果 ×2", multiplier: 2 },
-  3: { type: "success", key: "three", label: "3", line: "救援卡場景效果 ×3", multiplier: 3 },
-  4: { type: "fail", key: "four", label: "Four!", line: "準備回家自己爽了" },
-  5: { type: "fail", key: "water", label: "水", line: "水床沒玩到，那就都不要玩了" },
-  6: { type: "fail", key: "law", label: "完全法克", line: "大法師完全搞砸了" },
+  1: { type: "success", key: "one", label: "1", multiplier: 1 },
+  2: { type: "success", key: "two", label: "2", multiplier: 2 },
+  3: { type: "success", key: "three", label: "3", multiplier: 3 },
+  4: { type: "fail", key: "four", label: "Four!" },
+  5: { type: "fail", key: "water", label: "水床沒玩到" },
+  6: { type: "fail", key: "law", label: "完全法克" },
 };
 
 const EMERGENCY_BAD_ENDINGS = {
@@ -49,19 +41,86 @@ const EMERGENCY_BAD_ENDINGS = {
     ending_id: "ending_emergency_four_self",
     title: "Four! 回家自己爽了",
     mood: "bad",
-    text: "你在緊急任務中擲出了 4 點：Four!\n\n系統提示：準備回家自己爽了。\n\nGumayuwei 的「等等！！！」還在空氣中迴盪，但骰子已經替你做出判決。\n\n她看著你，像看著一個準備把人生存檔關掉的人：\n\n「你真的很努力，但方向完全不對。」\n\n那天晚上，你沒有挽回女主，只挽回了獨自回家的時間。",
+    text: "你在緊急任務中擲出了 4 Four!。\n\nGumayuwei 的「等等！！！」還在空氣中迴盪，但骰子已經替你做出判決。\n\n她看著你，像看著一個準備把人生存檔關掉的人：\n\n「你真的很努力，但方向完全不對。」\n\n那天晚上，你沒有挽回女主，只挽回了獨自回家的時間。",
   },
   water: {
     ending_id: "ending_emergency_waterbed",
     title: "水床沒玩到",
     mood: "bad",
-    text: "你在緊急任務中擲出了 5 點：水。\n\n系統提示：水床沒玩到，那就都不要玩了。\n\n救援環節還沒開始，現場就像被倒了一桶冷水。\n\n她沉默三秒後說：\n\n「我本來以為你至少會有一點補救能力，結果你連幻想都安排得很失敗。」\n\n水床沒玩到，戀愛也沒玩到。",
+    text: "你在緊急任務中擲出了 5 水床沒玩到。\n\n救援環節還沒開始，現場就像被倒了一桶冷水。\n\n她沉默三秒後說：\n\n「我本來以為你至少會有一點補救能力，結果你連幻想都安排得很失敗。」\n\n水床沒玩到，戀愛也沒玩到。",
   },
   law: {
     ending_id: "ending_emergency_law_fucked",
     title: "完全法克",
     mood: "bad",
-    text: "你在緊急任務中擲出了 6 點：完全法克。\n\n系統提示：大法師完全搞砸了。\n\n這不是普通失誤，這是可以寫進魔法史的災難。\n\n她扶著額頭說：\n\n「我不知道你剛剛召喚了什麼，但我確定它不叫戀愛。」\n\n大法師施法失敗，局勢徹底法克。",
+    text: "你在緊急任務中擲出了 6 完全法克。\n\n這不是普通失誤，這是可以寫進魔法史的災難。\n\n她扶著額頭說：\n\n「我不知道你剛剛召喚了什麼，但我確定它不叫戀愛。」\n\n大法師施法失敗，局勢徹底法克。",
+  },
+};
+
+const SCENE_CHOICES = {
+  ev_pantry_invite: {
+    question: "她問你下班要不要一起走，你要先怎麼回？",
+    options: [
+      { label: "是，直接答應", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "答應得這麼快？好，至少這次沒有當機。" }] },
+      { label: "否，先假裝很忙", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你桌上明明只有空杯子，忙什麼？忙著逃避嗎？" }] },
+      { label: "反問：有含晚餐嗎？", effects: { comedy: 2, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你的人生是不是所有邀約都要先判斷能不能吃？" }] },
+    ],
+  },
+  ev_elevator: {
+    question: "電梯裡突然安靜，你要怎麼打破沉默？",
+    options: [
+      { label: "問她今天累不累", effects: { favorability: 2, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你居然會問正常問題，我有點不習慣。" }] },
+      { label: "盯著樓層燈裝冷靜", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你盯得像電梯欠你錢。" }] },
+      { label: "說這電梯很適合展開劇情", effects: { comedy: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要在密閉空間展開任何東西。" }] },
+    ],
+  },
+  ev_conv_store: {
+    question: "便利商店冰櫃前，她問你想吃哪個，你選？",
+    options: [
+      { label: "牛奶冰棒", effects: { favorability: 1, appetite: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "很安全的答案，跟你本人不太一樣。" }] },
+      { label: "巧克力脆皮", effects: { appetite: 3, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你眼神突然亮了，冰棒比我有吸引力是不是？" }] },
+      { label: "我都要", effects: { appetite: 5, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你不是選擇困難，你是胃口太大。" }] },
+    ],
+  },
+  ev_dinner_shop: {
+    question: "晚餐店老闆問要不要加湯圓，你要？",
+    options: [
+      { label: "是，加一份", effects: { appetite: 4, comedy: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你答應加湯圓的速度比答應約會還快。" }] },
+      { label: "否，先留胃給下次", effects: { favorability: 2, sincerity: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "下次？你這句話倒是滿會鋪梗的。" }] },
+      { label: "問她要不要分你一顆", effects: { favorability: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "可以，但你要自己說這不是搶食物，是交流感情。" }] },
+    ],
+  },
+  ev_night_market: {
+    question: "夜市人很多，她問要不要牽著走，你要？",
+    options: [
+      { label: "是，伸手", effects: { favorability: 4, sincerity: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "這次你倒是沒有搞砸。手不要抖成那樣就更好了。" }] },
+      { label: "否，嘴硬說不會走散", effects: { awkwardness: 3, confidence: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛才差點跟鹽酥雞攤走。" }] },
+      { label: "提議用地瓜球當路標", effects: { comedy: 3, appetite: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你不要把戀愛路線規劃成美食導航。" }] },
+    ],
+  },
+  ev_gossip: {
+    question: "同事開始八卦你們，你要怎麼處理？",
+    options: [
+      { label: "大方說只是一起吃飯", effects: { sincerity: 2, favorability: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "至少你這次沒有越描越黑。" }] },
+      { label: "裝死滑手機", effects: { awkwardness: 3, social_death: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你現在裝死，只會讓他們覺得真的有事。" }] },
+      { label: "反問：你們要入股嗎？", effects: { comedy: 4, social_death: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "不要把八卦講成募資案！" }] },
+    ],
+  },
+  ev_meeting_room: {
+    question: "會議室氣氛很硬，你要先做什麼？",
+    options: [
+      { label: "認真看資料", effects: { sincerity: 2, confidence: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "smile", text: "你認真起來還是有點可靠，雖然只有一點。" }] },
+      { label: "先喝水拖時間", effects: { awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "dots", text: "你那杯水已經被你喝出戰術價值了。" }] },
+      { label: "提議用抽卡決定簡報順序", effects: { comedy: 3, social_death: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "shock", text: "不要把會議變成迷因卡池。" }] },
+    ],
+  },
+  ev_confession: {
+    question: "告白前最後一秒，你要先做什麼？",
+    options: [
+      { label: "深呼吸，直視她", effects: { sincerity: 4, favorability: 3 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "soft", text: "你這次看起來像是真的有話想說。" }] },
+      { label: "先開玩笑緩和氣氛", effects: { comedy: 3, awkwardness: 1 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "laugh", text: "你很緊張對吧？笑點都開始冒汗了。" }] },
+      { label: "突然問她餓不餓", effects: { appetite: 4, comedy: 2, awkwardness: 2 }, script: [{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你連告白前都能接到吃飯線，真的很 Gumayuwei。" }] },
+    ],
   },
 };
 
@@ -124,6 +183,17 @@ function drawCardFromCollection() {
   if (pool.length === 0) pool = owned;
   return pool[Math.floor(Math.random() * pool.length)];
 }
+function drawReplacementCardExcluding(excludedIds = []) {
+  const excluded = new Set(excludedIds);
+  const owned = getPlayablePool();
+  let pool = owned.filter((id) => !excluded.has(id));
+  if (pool.length === 0) pool = DATA.cards.map((c) => c.id).filter((id) => !excluded.has(id));
+  if (pool.length === 0) pool = DATA.cards.map((c) => c.id);
+  const cardId = pool[Math.floor(Math.random() * pool.length)];
+  const ownedNow = store.getOwnedIds();
+  if (!ownedNow.includes(cardId)) store.setOwnedIds([...ownedNow, cardId]);
+  return cardId;
+}
 
 function tagModifiers(card, scene, heroine) {
   const bonus = { favorability: 0, awkwardness: 0, social_death: 0 };
@@ -157,16 +227,8 @@ function applyEffects(effects) {
   });
 }
 function toleranceDeltaFromEffects(effects) {
-  const bad =
-    Math.max(0, effects.awkwardness || 0) * 4 +
-    Math.max(0, effects.social_death || 0) * 5 +
-    Math.max(0, -(effects.favorability || 0)) * 5 +
-    Math.max(0, -(effects.sincerity || 0)) * 4;
-  const good =
-    Math.max(0, effects.favorability || 0) * 1.5 +
-    Math.max(0, effects.sincerity || 0) * 1.8 +
-    Math.max(0, effects.comedy || 0) * 0.25 +
-    Math.max(0, effects.confidence || 0) * 0.2;
+  const bad = Math.max(0, effects.awkwardness || 0) * 4 + Math.max(0, effects.social_death || 0) * 5 + Math.max(0, -(effects.favorability || 0)) * 5 + Math.max(0, -(effects.sincerity || 0)) * 4;
+  const good = Math.max(0, effects.favorability || 0) * 1.5 + Math.max(0, effects.sincerity || 0) * 1.8 + Math.max(0, effects.comedy || 0) * 0.25 + Math.max(0, effects.confidence || 0) * 0.2;
   return Math.round(good - bad);
 }
 function adjustToleranceFromEffects(effects) {
@@ -284,10 +346,7 @@ function renderLine(line) {
   typeText(line.text || "");
 }
 function templateScript(lines, vars) {
-  return (lines || []).map((line) => ({
-    ...line,
-    text: String(line.text || "").replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`),
-  }));
+  return (lines || []).map((line) => ({ ...line, text: String(line.text || "").replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`) }));
 }
 
 function loadScene(sceneId) {
@@ -300,14 +359,40 @@ function loadScene(sceneId) {
   $("hud-location").textContent = `第 ${state.stopCount} 站・${scene.title}｜${scene.location}`;
   renderHud();
   audio.setMood(scene.bgm || "office");
-  playScript(scene.intro_script, openHand);
+  playScript(scene.intro_script, openSceneChoice);
+}
+function openSceneChoice() {
+  const scene = currentScene();
+  const choice = SCENE_CHOICES[scene?.scene_id];
+  if (!choice) { openHand(); return; }
+  state.mode = "sceneChoice";
+  $("dialog").classList.add("hidden");
+  $("scene-choice-question").textContent = choice.question;
+  const box = $("scene-choice-options");
+  box.innerHTML = "";
+  choice.options.forEach((option, index) => {
+    const btn = document.createElement("button");
+    btn.className = "scene-choice-option";
+    btn.textContent = `${index + 1}. ${option.label}`;
+    btn.addEventListener("click", (e) => { e.stopPropagation(); chooseSceneOption(option); });
+    box.appendChild(btn);
+  });
+  $("scene-choice-overlay").classList.remove("hidden");
+}
+function chooseSceneOption(option) {
+  $("scene-choice-overlay").classList.add("hidden");
+  applyEffects(option.effects || {});
+  adjustToleranceFromEffects(option.effects || {});
+  renderHud(Object.keys(option.effects || {}));
+  playScript(option.script || [], () => {
+    if (state.emergencyPending) maybeEmergencyMission();
+    else openHand();
+  });
 }
 function openHand() {
   state.mode = "hand";
   const context = state.lastDialogue || { speaker: "提示", text: "請根據目前情境選擇一張卡。" };
-  $("choice-context").innerHTML =
-    `<div><span class="context-speaker">${esc(context.speaker)}</span>${esc(context.text)}</div>` +
-    `<div class="context-note">選錯不一定會輸，但會扣女主忍受條。</div>`;
+  $("choice-context").innerHTML = `<div><span class="context-speaker">${esc(context.speaker)}</span>${esc(context.text)}</div><div class="context-note">選錯不一定會輸，但會扣女主忍受條。</div>`;
   const hand = $("hand");
   hand.innerHTML = "";
   state.hand.forEach((cardId) => hand.appendChild(buildCardButton(cardId, playCard)));
@@ -400,16 +485,14 @@ function openEmergencyMission() {
   $("emergency-roll-result").classList.add("hidden");
   $("btn-emergency-roll").disabled = true;
   $("btn-emergency-roll").classList.add("disabled");
-
   const candidates = state.hand.filter((id) => id !== state.lastUsedCard && RARITY_ORDER[getCard(id).rarity] >= EMERGENCY_RARITY_MIN);
   const box = $("emergency-cards");
   box.innerHTML = "";
-
   if (candidates.length === 0) {
     $("emergency-prompt").textContent = "女主忍受條已歸零，但你手上沒有 SSR 以上卡可以救場。";
     $("btn-emergency-give-up").textContent = "沒有救援卡，進入壞結局";
   } else {
-    $("emergency-prompt").textContent = "局勢已經失控。選擇 1 張 SSR / UR 卡作為緊急救援卡，再擲骰決定命運。1~3 會乘上該卡在目前場景的效果，4~6 會直接翻車。";
+    $("emergency-prompt").textContent = "局勢已經失控。選擇 1 張 SSR / UR 卡作為緊急救援卡，再擲骰決定命運。";
     $("btn-emergency-give-up").textContent = "放棄救援，接受壞結局";
     candidates.forEach((id) => box.appendChild(buildCardButton(id, selectEmergencyCard)));
   }
@@ -432,45 +515,31 @@ function sceneEffectsForEmergencyCard(cardId) {
   return mergeEffects(result.effects, bonus);
 }
 function rescuePowerFromEffects(effects) {
-  return Math.round(
-    Math.max(0, effects.favorability || 0) * 4 +
-    Math.max(0, effects.sincerity || 0) * 4 +
-    Math.max(0, effects.confidence || 0) * 1.5 +
-    Math.max(0, effects.comedy || 0) * 1 +
-    Math.max(0, effects.battle || 0) * 0.5 +
-    Math.max(0, effects.appetite || 0) * 0.3 -
-    Math.max(0, effects.awkwardness || 0) * 4 -
-    Math.max(0, effects.social_death || 0) * 6
-  );
+  return Math.round(Math.max(0, effects.favorability || 0) * 4 + Math.max(0, effects.sincerity || 0) * 4 + Math.max(0, effects.confidence || 0) * 1.5 + Math.max(0, effects.comedy || 0) * 1 + Math.max(0, effects.battle || 0) * 0.5 + Math.max(0, effects.appetite || 0) * 0.3 - Math.max(0, effects.awkwardness || 0) * 4 - Math.max(0, effects.social_death || 0) * 6);
 }
 function rollEmergencyDice() {
   if (!state.emergencyCardId) return;
   const roll = Math.floor(Math.random() * 6) + 1;
   const face = DICE_FACES[roll];
   const card = getCard(state.emergencyCardId);
-
   $("btn-emergency-roll").disabled = true;
   $("btn-emergency-roll").classList.add("disabled");
-
   if (face.type === "fail") {
-    $("emergency-roll-result").textContent = `擲出 ${roll}「${face.label}」：${face.line}。救援失敗。`;
+    $("emergency-roll-result").textContent = `擲出 ${roll} ${face.label}，救援失敗。`;
     $("emergency-roll-result").className = "emergency-roll-result fail";
     $("emergency-roll-result").classList.remove("hidden");
     window.setTimeout(() => emergencyFail(face.key), 900);
     return;
   }
-
   const baseEffects = sceneEffectsForEmergencyCard(state.emergencyCardId);
   const effects = scaleEffects(baseEffects, face.multiplier);
   const power = rescuePowerFromEffects(effects);
   state.cardUse[state.emergencyCardId] = (state.cardUse[state.emergencyCardId] || 0) + 1;
   applyEffects(effects);
   renderHud(Object.keys(effects || {}));
-
-  $("emergency-roll-result").textContent = `擲出 ${roll} 點：${card.name} 在本場景的效果 ×${face.multiplier}，救援力 ${power}。`;
+  $("emergency-roll-result").textContent = `擲出 ${roll} 點：${card.name} ×${face.multiplier}，救援力 ${power}。`;
   $("emergency-roll-result").className = "emergency-roll-result success";
   $("emergency-roll-result").classList.remove("hidden");
-
   window.setTimeout(() => emergencySuccess(card, face, effects, power), 900);
 }
 function emergencySuccess(card, face, effects, power) {
@@ -480,7 +549,7 @@ function emergencySuccess(card, face, effects, power) {
   $("emergency-overlay").classList.add("hidden");
   renderHud(Object.keys(effects || {}));
   playScript([
-    { type: "narration", text: `緊急救援成功！${card.name} 在本場景的效果被骰子放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
+    { type: "narration", text: `緊急救援成功！${card.name} 被骰子放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
     { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛那聲『等等』很吵，但這次……至少真的有救到。" },
   ], openSwap);
 }
@@ -495,16 +564,51 @@ function emergencyFail(reasonKey = "no_card") {
 function openSwap() {
   if (state.pendingNext === "ending") { goNext(); return; }
   state.mode = "swap";
+  state.pendingDiscard = null;
+  $("swap-hint").textContent = "選擇 1 張想汰換的手牌，確認後會翻出一張新牌補進手牌。";
   $("swap-result").classList.add("hidden");
+  $("swap-result").innerHTML = "";
+  $("btn-confirm-swap").disabled = true;
+  $("btn-confirm-swap").classList.add("disabled");
   const box = $("swap-hand");
   box.innerHTML = "";
-  state.hand.forEach((id) => box.appendChild(buildCardButton(id, (discardId) => {
-    state.pendingDiscard = discardId;
-    state.hand = state.hand.filter((h) => h !== discardId);
-    $("swap-overlay").classList.add("hidden");
-    openRunDraw("swap");
-  })));
+  state.hand.forEach((id) => box.appendChild(buildCardButton(id, selectSwapCard)));
   $("swap-overlay").classList.remove("hidden");
+}
+function selectSwapCard(discardId) {
+  state.pendingDiscard = discardId;
+  const card = getCard(discardId);
+  $("swap-hint").textContent = `確定要汰換「${card.name}」嗎？`;
+  $("swap-result").textContent = "選擇「確認汰換」後會直接翻出新牌。";
+  $("swap-result").classList.remove("hidden");
+  $("btn-confirm-swap").disabled = false;
+  $("btn-confirm-swap").classList.remove("disabled");
+}
+function confirmSwap() {
+  if (!state.pendingDiscard) return;
+  const discardedId = state.pendingDiscard;
+  state.hand = state.hand.filter((h) => h !== discardedId);
+  const replacementId = drawReplacementCardExcluding([...state.hand, discardedId]);
+  const replacement = getCard(replacementId);
+  state.hand.push(replacementId);
+  state.pendingDiscard = null;
+  $("btn-confirm-swap").disabled = true;
+  $("btn-confirm-swap").classList.add("disabled");
+  $("swap-hand").innerHTML = "";
+  $("swap-hint").textContent = "翻面補牌中……";
+  $("swap-result").innerHTML = `
+    <div class="swap-flip-card">
+      <div class="swap-flip-inner">
+        <div class="swap-card-face swap-card-back">NEW CARD</div>
+        <div class="swap-card-face swap-card-front">
+          <span class="card-rarity rarity-${esc(replacement.rarity)}">${esc(replacement.rarity)}</span>
+          <div class="card-name">${esc(replacement.name)}</div>
+          <div class="card-line">「${esc(replacement.line)}」</div>
+        </div>
+      </div>
+    </div>`;
+  $("swap-result").classList.remove("hidden");
+  window.setTimeout(goNext, 1050);
 }
 function goNext() {
   $("swap-overlay").classList.add("hidden");
@@ -603,13 +707,8 @@ function openRunDraw(mode) {
   state.runDrawDone = false;
   $("run-draw-result").innerHTML = "";
   $("btn-run-draw").textContent = "抽 1 張";
-  if (mode === "start") {
-    $("run-draw-title").textContent = "開始前抽一張卡";
-    $("run-draw-desc").textContent = "本輪開始前先抽 1 張，卡片會加入收藏，並有機會進入本輪手牌。";
-  } else {
-    $("run-draw-title").textContent = "手牌汰換抽卡";
-    $("run-draw-desc").textContent = `已淘汰「${getCard(state.pendingDiscard)?.name || "一張卡"}」，現在抽 1 張新卡補進手牌。`;
-  }
+  $("run-draw-title").textContent = "開始前抽一張卡";
+  $("run-draw-desc").textContent = "本輪開始前先抽 1 張，卡片會加入收藏，並有機會進入本輪手牌。";
   $("screen-run-draw").classList.remove("hidden");
 }
 function resolveRunDraw() {
@@ -620,20 +719,13 @@ function resolveRunDraw() {
     gacha.renderGachaResults([result], $("run-draw-result"));
     gacha.renderHomeProgress();
     state.runDrawDone = true;
-    $("btn-run-draw").textContent = state.runDrawMode === "start" ? "進入劇情 ▶" : "補進手牌 ▶";
+    $("btn-run-draw").textContent = "進入劇情 ▶";
     return;
   }
   $("screen-run-draw").classList.add("hidden");
-  if (state.runDrawMode === "start") {
-    dealHand();
-    $("screen-start").classList.add("hidden");
-    loadScene(DATA.start);
-  } else {
-    state.hand.push(state.runDrawCardId);
-    state.pendingDiscard = null;
-    state.runDrawCardId = null;
-    goNext();
-  }
+  dealHand();
+  $("screen-start").classList.add("hidden");
+  loadScene(DATA.start);
 }
 
 function hidePanels() {
@@ -665,7 +757,7 @@ function startGame() {
 function backHome() {
   state.mode = "start";
   hidePanels();
-  ["dialog", "topbar", "hand-overlay", "rescue-overlay", "swap-overlay", "emergency-overlay", "cutin"].forEach((id) => $(id).classList.add("hidden"));
+  ["dialog", "topbar", "hand-overlay", "scene-choice-overlay", "rescue-overlay", "swap-overlay", "emergency-overlay", "cutin"].forEach((id) => $(id).classList.add("hidden"));
   hideGumaEmotionText();
   audio.setMood("office");
   gacha.renderHomeProgress();
@@ -690,9 +782,7 @@ async function init() {
   gacha.renderHomeProgress();
   audio.updateButton();
   renderTolerance();
-
   window.addEventListener("pointerdown", () => audio.unlock(), { once: true });
-
   const on = (id, handler) => $(id).addEventListener("click", (e) => { e.stopPropagation(); handler(); });
   on("btn-start", startGame);
   on("btn-restart", startGame);
@@ -709,10 +799,10 @@ async function init() {
   on("btn-ending-gallery", () => { $("screen-ending").classList.add("hidden"); gacha.openEndings(); });
   on("btn-no-rescue", () => { $("rescue-overlay").classList.add("hidden"); openSwap(); });
   on("btn-no-swap", goNext);
+  on("btn-confirm-swap", confirmSwap);
   on("btn-bgm", audio.toggleMute);
   on("btn-emergency-roll", rollEmergencyDice);
   on("btn-emergency-give-up", () => emergencyFail(state.emergencyCardId ? "four" : "no_card"));
-
   $("stage").addEventListener("click", () => { if (state.mode === "story") advance(); });
   window.addEventListener("keydown", (e) => {
     if ((e.key === " " || e.key === "Enter") && state.mode === "story") { e.preventDefault(); advance(); }
