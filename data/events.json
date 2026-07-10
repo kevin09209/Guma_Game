@@ -1,0 +1,229 @@
+{
+  "_comment": "事件資料（galgame 劇本格式）。每個事件的 script 是一行一行的劇本：type=narration 是旁白、type=dialogue 是角色台詞（speaker 可以是 guma / heroine / boss，emotion 是情緒符號）、type=choice 表示此處彈出手牌讓玩家出牌。choices 是可出的卡片：effects 是數值變化，script 是出牌後的演出劇本。",
+  "events": [
+    {
+      "event_id": "event_001",
+      "title": "茶水間巧遇",
+      "location": "公司茶水間",
+      "background": "assets/backgrounds/pantry.svg",
+      "heroine": "heroine_001",
+      "script": [
+        { "type": "narration", "text": "下午三點，辦公室進入集體靈魂出竅的時段。你拖著半條命走進茶水間，準備泡一杯咖啡續命。" },
+        { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "（今天也是為了下班而努力的一天……）" },
+        { "type": "narration", "text": "手一滑——整杯咖啡打翻在流理台上，咖啡沿著檯面邊緣滴滴答答，朝著插座的方向流去。" },
+        { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "啊。" },
+        { "type": "narration", "text": "就在這個最不妙的瞬間，理性吐槽系同事——林知夏，正好端著馬克杯走了進來。" },
+        { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "……你連泡咖啡都能翻車？這也算是一種才能吧。" },
+        { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "所以？你打算就這樣看著它流進插座嗎？" },
+        { "type": "choice" }
+      ],
+      "choices": [
+        {
+          "card": "card_001",
+          "effects": { "favorability": 5, "awkwardness": -2, "comedy": 8, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 皺眉歪頭，周圍浮現大量問號，彷彿打翻咖啡的是別人。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "？？？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "你那是什麼表情？犯人就是你欸。" },
+            { "type": "narration", "text": "她翻了個白眼，但嘴角明顯在憋笑，順手抽了幾張紙巾丟給你。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "擦一擦啦。真是的，怎麼會有人對著咖啡露出被背叛的表情。" }
+          ]
+        },
+        {
+          "card": "card_002",
+          "effects": { "favorability": 6, "awkwardness": -3, "comedy": 5, "sincerity": 0, "confidence": 10, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 雙手交叉，看著滿桌咖啡，露出一個自信但欠揍的微笑。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "不急。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "你是在冷靜什麼？咖啡都快流到插座旁邊了！" },
+            { "type": "narration", "text": "你慢條斯理地拿起抹布，一氣呵成地把檯面擦乾淨。她嘴上吐槽，心裡卻覺得這人心態意外地穩。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "……好啦，至少收尾還算俐落。勉強及格。" }
+          ]
+        },
+        {
+          "card": "card_003",
+          "effects": { "favorability": 3, "awkwardness": 0, "comedy": 12, "sincerity": 0, "confidence": 0, "social_death": 10 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 看著咖啡流走，突然張開雙手，對著天花板崩潰大喊——" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "我還沒上車啊——！！" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "shock", "text": "跟上車有什麼關係！？" },
+            { "type": "narration", "text": "聲音大到隔壁部門都探頭進來看。整個茶水間擠滿了圍觀群眾，她一邊笑一邊往旁邊退了半步，假裝不認識你。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "（小聲）你完了，這個下午全公司都會知道。" }
+          ]
+        },
+        {
+          "card": "card_004",
+          "effects": { "favorability": 2, "awkwardness": 5, "comedy": 8, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 看了看空掉的咖啡杯，又看了看咖啡機，眼神無比真誠地問——" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "還有嗎？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "重點是地板吧？！你先擦地板！" },
+            { "type": "narration", "text": "她傻眼地看著你，最後嘆了口氣，默默把自己杯子裡的咖啡分了你半杯。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "拿去。看你可憐。……不要一臉感動，很噁心。" }
+          ]
+        },
+        {
+          "card": "card_005",
+          "effects": { "favorability": 8, "awkwardness": -5, "comedy": 4, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 當場石化，變成一尊面向流理台的摩艾石像。表情凝重而深遠，彷彿在思考文明的興衰。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "……" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "shock", "text": "……你當機了嗎？" },
+            { "type": "narration", "text": "她盯著你整整三秒，嘆了口氣，拿起抹布幫你把檯面擦乾淨。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "欠我一次。石像先生。" }
+          ]
+        }
+      ]
+    },
+    {
+      "event_id": "event_002",
+      "title": "下班邀約",
+      "location": "公司電梯口",
+      "background": "assets/backgrounds/elevator.svg",
+      "heroine": "heroine_001",
+      "script": [
+        { "type": "narration", "text": "傍晚六點零一分。你以百米衝刺的靈魂、散步的步伐走到電梯口——準時下班是一種信仰。" },
+        { "type": "narration", "text": "電梯還在十二樓慢慢往下爬。旁邊傳來熟悉的聲音。" },
+        { "type": "dialogue", "speaker": "heroine", "emotion": "none", "text": "又遇到了。今天沒有打翻什麼東西吧？" },
+        { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "（她還記得。糟糕，是黑歷史的味道。）" },
+        { "type": "narration", "text": "她看了一眼樓層顯示，難得主動開口。" },
+        { "type": "dialogue", "speaker": "heroine", "emotion": "none", "text": "你等下要幹嘛？該不會又是回家躺著吧。" },
+        { "type": "choice" }
+      ],
+      "choices": [
+        {
+          "card": "card_001",
+          "effects": { "favorability": 1, "awkwardness": 8, "comedy": 5, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 歪頭，大腦當機，完全沒意識到這可能是個千載難逢的邀約機會。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "？？？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "……當我沒問。" },
+            { "type": "narration", "text": "「叮。」電梯到了。她走進去，門緩緩關上，留下一臉問號的你。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "（等等，剛剛那題是不是有隱藏選項！？）" }
+          ]
+        },
+        {
+          "card": "card_002",
+          "effects": { "favorability": 5, "awkwardness": 0, "comedy": 5, "sincerity": 0, "confidence": 10, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 雙手交叉，露出神秘的微笑，把問題原封不動丟回去。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "不急。……妳呢？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "我問你欸？" },
+            { "type": "narration", "text": "她挑眉瞪了你一眼，卻沒有走開的意思。電梯到了，她按住開門鍵。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "……好啦，要不要一起吃個飯？看在你今天沒闖禍的份上。" }
+          ]
+        },
+        {
+          "card": "card_003",
+          "effects": { "favorability": 2, "awkwardness": 0, "comedy": 10, "sincerity": 0, "confidence": 0, "social_death": 12 },
+          "script": [
+            { "type": "narration", "text": "電梯門打開，她先走了進去。就在門開始關上的瞬間，Gumayuwei 大喊——" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "我還沒上車啊——！！" },
+            { "type": "narration", "text": "你用手刀劈開電梯門，帥氣地滑了進去。電梯裡除了她，還站著三位別部門的同事。所有人都盯著你。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "拜託你正常一點……" },
+            { "type": "narration", "text": "她把臉埋進手心，但你注意到，她的肩膀在抖——是憋笑憋的。" }
+          ]
+        },
+        {
+          "card": "card_004",
+          "effects": { "favorability": 10, "awkwardness": 0, "comedy": 8, "sincerity": 8, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 深吸一口氣，用畢生的勇氣說出一句史上最迂迴的邀約。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "none", "text": "我要去吃紅豆湯圓。名額還有一個——還有嗎？我是說……妳要來嗎？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "什麼叫名額還有一個，你是在辦活動嗎？" },
+            { "type": "narration", "text": "她笑出聲，是那種真的被逗到的笑。電梯到了一樓，她率先走出去，回頭看你。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "……好啊。我要加芋圓，你請客。" }
+          ]
+        },
+        {
+          "card": "card_005",
+          "effects": { "favorability": 6, "awkwardness": 3, "comedy": 4, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "面對突如其來的問題，Gumayuwei 陷入沉默，緩緩石化成一尊等電梯的摩艾。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "……" },
+            { "type": "narration", "text": "電梯到了又走，走了又到。她看著紋風不動的你，終於嘆了口氣。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "……算了，看你這樣我也不放心讓你自己回家。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "none", "text": "要一起吃飯嗎？我知道附近有間不錯的。石像先生，點頭就好。" }
+          ]
+        }
+      ]
+    },
+    {
+      "event_id": "event_003",
+      "title": "臨時加班危機",
+      "location": "辦公室",
+      "background": "assets/backgrounds/office.svg",
+      "heroine": "heroine_001",
+      "script": [
+        { "type": "narration", "text": "晚餐的約定成立了。你們正準備一起走出辦公室，空氣中飄著一絲微妙的、像是約會前奏的氣氛。" },
+        { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "（冷靜。這不是約會。只是同事一起吃飯。……應該吧？）" },
+        { "type": "narration", "text": "就在這時，會議室的門「碰」地打開，主管探出頭來——" },
+        { "type": "dialogue", "speaker": "boss", "emotion": "none", "text": "Gumayuwei！這份報表客戶臨時要，今天要給！" },
+        { "type": "narration", "text": "晚餐計畫岌岌可危。林知夏抱著包包站在旁邊，挑眉看著你，一副「我倒要看看你怎麼辦」的表情。" },
+        { "type": "choice" }
+      ],
+      "choices": [
+        {
+          "card": "card_001",
+          "effects": { "favorability": 4, "awkwardness": -3, "comedy": 6, "sincerity": 0, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 歪頭，露出宇宙級的疑惑。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "？？？" },
+            { "type": "dialogue", "speaker": "boss", "emotion": "none", "text": "就是……那個季度報表，只要把最新的三個數字換上去就好——" },
+            { "type": "narration", "text": "主管重新解釋了一遍需求。講完大家才發現：其實十分鐘就能搞定。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "原來裝傻也是一種需求釐清……我學到了。" },
+            { "type": "narration", "text": "十分鐘後，你們準時出發。" }
+          ]
+        },
+        {
+          "card": "card_002",
+          "effects": { "favorability": 4, "awkwardness": 0, "comedy": 10, "sincerity": 0, "confidence": 8, "social_death": 15 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 面對主管，緩緩雙手交叉，露出自信的微笑。" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "不急。" },
+            { "type": "narration", "text": "整層樓瞬間安靜。連影印機都停止了運轉。主管的臉黑得像簽核章。" },
+            { "type": "dialogue", "speaker": "boss", "emotion": "none", "text": "……你說什麼？" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "（笑到岔氣）你完蛋了……我幫你，快做，快！" },
+            { "type": "narration", "text": "她一邊笑一邊幫你打開電腦。你用職涯換來了她的爆笑，值不值得，見仁見智。" }
+          ]
+        },
+        {
+          "card": "card_003",
+          "effects": { "favorability": 10, "awkwardness": 0, "comedy": 12, "sincerity": 0, "confidence": 0, "social_death": 5 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 望向窗外的夕陽，張開雙手，對人生發出了沉痛的吶喊——" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "我還沒上車啊——！！" },
+            { "type": "narration", "text": "喊的是下班這班車。夕陽把你的影子拉得很長，像一部悲壯的社畜電影。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "哈哈哈哈你對人生喊什麼啦！" },
+            { "type": "narration", "text": "她笑到不行，把包包放回座位上，捲起袖子。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "好啦好啦，我幫你一起弄。弄完去吃飯，你欠我一份甜點。" }
+          ]
+        },
+        {
+          "card": "card_004",
+          "effects": { "favorability": 8, "awkwardness": 0, "comedy": 3, "sincerity": 10, "confidence": 8, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "Gumayuwei 走上前，接過報表，看著主管的眼睛，認真地問——" },
+            { "type": "dialogue", "speaker": "guma", "emotion": "none", "text": "還有嗎？有的話一次給我，我一次做完。" },
+            { "type": "narration", "text": "主管愣了一下，難得露出讚許的表情，拍了拍你的肩膀。" },
+            { "type": "dialogue", "speaker": "boss", "emotion": "none", "text": "……就這一份。做完就下班吧，辛苦了。" },
+            { "type": "narration", "text": "她在旁邊也愣住了。原來這個平常滿頭問號的怪人，扛起事情來意外地可靠。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "……我去買咖啡。做完一起走。" }
+          ]
+        },
+        {
+          "card": "card_005",
+          "effects": { "favorability": 5, "awkwardness": 5, "comedy": 4, "sincerity": 3, "confidence": 0, "social_death": 0 },
+          "script": [
+            { "type": "narration", "text": "面對突如其來的加班命令，Gumayuwei 石化成摩艾，一動也不動。" },
+            { "type": "dialogue", "speaker": "boss", "emotion": "none", "text": "喂？聽到了嗎？喂——？" },
+            { "type": "narration", "text": "石像毫無反應。就只是一尊石像。" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "主管，他今天狀態不好。報表我來處理，明天早上給您。" },
+            { "type": "narration", "text": "她嘆著氣替你解圍，送走主管後，湊到石像耳邊小聲說——" },
+            { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "晚餐延到明天。石像先生，你欠我兩次了。" }
+          ]
+        }
+      ]
+    }
+  ]
+}

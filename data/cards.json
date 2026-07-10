@@ -1,0 +1,110 @@
+{
+  "_comment": "道具卡資料。effects 是「基礎效果」，實際每個事件可以覆寫（見 events.json 中各選項的 effects）。",
+  "cards": [
+    {
+      "id": "card_001",
+      "name": "疑惑問號",
+      "rarity": "N",
+      "type": [
+        "情緒卡",
+        "台詞卡"
+      ],
+      "line": "？？？",
+      "action": "皺眉歪頭，周圍浮現問號",
+      "description": "面對難懂問題時的萬用反應，裝傻界的基本功。",
+      "effects": {
+        "favorability": 0,
+        "awkwardness": -2,
+        "comedy": 8,
+        "sincerity": 0,
+        "confidence": 0,
+        "social_death": 0
+      },
+      "image": "assets/cards/card_001.png"
+    },
+    {
+      "id": "card_002",
+      "name": "不急",
+      "rarity": "N",
+      "type": [
+        "台詞卡",
+        "動作卡"
+      ],
+      "line": "不急。",
+      "action": "雙手交叉，露出微笑，自信但欠揍",
+      "description": "無論場面多失控，都能假裝一切在掌握之中。",
+      "effects": {
+        "favorability": 0,
+        "awkwardness": -3,
+        "comedy": 8,
+        "sincerity": 0,
+        "confidence": 10,
+        "social_death": 0
+      },
+      "image": "assets/cards/card_002.png"
+    },
+    {
+      "id": "card_003",
+      "name": "我還沒上車啊",
+      "rarity": "N",
+      "type": [
+        "台詞卡",
+        "動作卡"
+      ],
+      "line": "我還沒上車啊！",
+      "action": "張開雙手崩潰大喊",
+      "description": "當世界拋下你的時候，至少喊得夠大聲。",
+      "effects": {
+        "favorability": 0,
+        "awkwardness": 0,
+        "comedy": 12,
+        "sincerity": 0,
+        "confidence": 0,
+        "social_death": 8
+      },
+      "image": "assets/cards/card_003.png"
+    },
+    {
+      "id": "card_004",
+      "name": "還有嗎？",
+      "rarity": "N",
+      "type": [
+        "台詞卡",
+        "食物卡"
+      ],
+      "line": "還有嗎？",
+      "action": "端著紅豆湯圓，眼神真誠",
+      "description": "對食物的執著，偶爾會誤打誤撞變成真誠。",
+      "effects": {
+        "favorability": 0,
+        "awkwardness": 0,
+        "comedy": 8,
+        "sincerity": 5,
+        "confidence": 0,
+        "social_death": 0
+      },
+      "image": "assets/cards/card_004.png"
+    },
+    {
+      "id": "card_005",
+      "name": "摩艾沉默",
+      "rarity": "UR",
+      "type": [
+        "雕像卡",
+        "沉默卡"
+      ],
+      "line": "……",
+      "action": "整個人變成摩艾石像",
+      "description": "不知道怎麼回答的時候，就成為地景的一部分。",
+      "effects": {
+        "favorability": 0,
+        "awkwardness": -5,
+        "comedy": 4,
+        "sincerity": 0,
+        "confidence": 0,
+        "social_death": 0
+      },
+      "image": "assets/cards/card_005.png"
+    }
+  ]
+}

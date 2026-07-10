@@ -1,0 +1,81 @@
+# Gumayuwei 搞笑戀愛模擬器
+
+一款以搞笑戀愛為主軸的選擇型戀愛模擬器。玩家扮演 **Gumayuwei** —— 一位在台北上班、看起來厭世但意外有迷因魅力的普通男子，透過「道具卡」操控他的台詞與行動，用最荒謬的方式推進戀愛。
+
+完整企劃書請見 [docs/GDD.md](docs/GDD.md)。
+
+## 目前進度：galgame 式 Demo（公司茶水間篇）
+
+- 介面：橫式 16:9 AVG（視覺小說）介面——場景背景、角色立繪、下方對話框、打字機文字、點擊推進
+- 出牌：劇情節點彈出手牌，出牌時有全螢幕特寫演出（cut-in）
+- 場景：公司茶水間、電梯口、辦公室（SVG 場景圖）
+- 女主角：林知夏（理性吐槽系同事）※ 名字為暫代，正式名稱改 `data/heroines.json` 一個欄位即可
+- 立繪：目前為剪影暫代圖（`assets/characters/`），之後用同名檔案覆蓋即可換成正式立繪
+- 卡片圖：放進 `assets/cards/`（命名規則見該資料夾的 README），缺圖時自動顯示占位卡面
+- 道具卡 5 張：疑惑問號、不急、我還沒上車啊、還有嗎？、摩艾沉默
+- 事件 3 個：茶水間巧遇 → 下班邀約 → 臨時加班危機
+- 結局 10 個：卡片路線結局（不急告白、紅豆湯圓純愛、摩艾沉默系戀愛、永遠沒上車、紅豆湯圓吃太多、摩艾完全石化）＋社死浪漫＋原本 3 個（完整規劃見 [docs/endings_plan.md](docs/endings_plan.md)）
+
+## 怎麼玩
+
+### 手機／任何裝置（GitHub Pages）
+
+啟用 GitHub Pages 後（Settings → Pages → Source 選「GitHub Actions」），推送會自動部署，手機瀏覽器直接開：
+
+> https://kevin09209.github.io/Guma_Game/
+
+建議手機橫拿。支援觸控點擊推進劇情。
+
+### 電腦本機
+
+因為瀏覽器安全限制，請用本機伺服器開啟（不要直接雙擊 index.html）：
+
+```bash
+# 在專案根目錄執行（Python 3 內建，不用安裝任何東西）
+python3 -m http.server 8000
+```
+
+然後用瀏覽器打開 <http://localhost:8000/prototype/> 即可開始遊戲。
+
+手機跟電腦連同一個 Wi-Fi 的話，手機也可以開 `http://<電腦的區網IP>:8000/prototype/` 試玩。
+
+### 玩法
+
+1. 點擊畫面（或按空白鍵／Enter）推進劇情，打字中點擊可直接顯示整句
+2. 劇情走到抉擇點會彈出手牌，選一張道具卡操控 Gumayuwei 的反應
+3. 出牌會播放全螢幕特寫演出，並改變六個數值：好感度、尷尬值、搞笑值、真誠值、自信值、社死值
+4. 三個事件結束後，依數值判定結局（社死值太高會直接壞結局！）
+
+## 專案結構
+
+```text
+/Guma_Game
+  /docs
+    GDD.md            # 完整遊戲企劃書
+  /data               # 遊戲資料（改內容不用動程式碼）
+    cards.json        # 道具卡：台詞、稀有度、卡圖路徑、基礎效果
+    heroines.json     # 女主角：性格、喜好、戀愛主題（名字暫代，改這裡）
+    events.json       # 事件：galgame 劇本（旁白/台詞/情緒/出牌節點）與數值變化
+    endings.json      # 結局：判定條件與結局文字
+  /assets
+    /backgrounds      # 場景背景圖（SVG）
+    /characters       # 角色立繪（目前為剪影暫代圖，同名覆蓋即可替換）
+    /cards            # 卡片圖（放圖規則見資料夾內 README）
+  /prototype          # 遊戲原型（純 HTML/CSS/JS，無需安裝套件）
+    index.html        # 舞台結構（背景/立繪/對話框/手牌/特寫等圖層）
+    style.css         # 畫面樣式與演出動畫
+    main.js           # AVG 引擎：劇本播放、打字機、出牌演出（含詳細中文註解）
+```
+
+## 如何擴充內容
+
+所有遊戲內容都在 `/data` 的 JSON 檔裡，改完重新整理網頁即可生效：
+
+- **換場景圖**：見 [docs/scene_guide.md（場景替換教學手冊）](docs/scene_guide.md)
+- **加新卡片**：在 `cards.json` 的 `cards` 陣列加一張卡，然後在 `events.json` 的事件 `choices` 裡引用它的 `id`
+- **加新事件**：在 `events.json` 的 `events` 陣列照格式加一個事件，遊戲會自動依序播放
+- **調整結局條件**：改 `endings.json` 各結局的 `conditions`（由上而下判定，第一個符合的生效；`stats` 是數值條件、`cards` 是卡片使用次數條件）
+- **結局擴充規劃**：見 [docs/endings_plan.md（結局篩選與實裝規劃）](docs/endings_plan.md)
+- **加新女主角**：在 `heroines.json` 加人，並在新事件的 `heroine` 欄位引用她的 `id`
+
+後續擴充方向（抽卡、更多女主角、CG 收集、社死排行榜⋯⋯）請見企劃書第 17 節。
