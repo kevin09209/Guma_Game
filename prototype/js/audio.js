@@ -4,10 +4,13 @@
    設計決策：
    - 不用音檔：GitHub Pages 零資產、零載入時間、無版權問題，
      之後想換成真 BGM，只要改 setMood() 成播放 <audio> 即可。
-   - 瀏覽器自動播放限制：AudioContext 必須在使用者手勢後建立，
-     main.js 會在第一次 pointerdown 呼叫 unlock()。
-   - 曲風由場景資料的 bgm 欄位決定（office/chill/festive/romance），
-     內容編輯者只改 JSON 就能換配樂。
+   - 瀏覽器自動播放限制：AudioContext 必須在使用者手勢後建立。
+   - 曲風由場景資料的 bgm 欄位決定（office/chill/festive/romance）。
+
+   v0.5.1 修正：
+   - 靜音時不只停止下一輪排程，也會立刻把 master gain 歸零。
+   - 會停止已排程但尚未播完的 oscillator，避免按下 🔇 後聲音殘留。
+   - 按下 BGM 鈕時會主動 unlock，確保按鈕本身就是有效的音訊手勢。
    ============================================================ */
 
 import { isBgmMuted, setBgmMuted } from "./storage.js";
@@ -17,6 +20,7 @@ let master = null;       // 總音量
 let loopTimer = null;    // 下一輪 loop 的排程
 let currentMood = null;  // 正在播的曲風
 let desiredMood = null;  // 想播的曲風（未解鎖/靜音時先記著）
+const activeOscillators = new Set();
 
 // 每種曲風：速度、波形、8 拍旋律與低音（[拍, MIDI 音高, 長度(拍)]）
 const MOODS = {
@@ -48,20 +52,43 @@ const MOODS = {
 
 const midiToFreq = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
 
+function setMasterMuted(muted) {
+  if (!ctx || !master) return;
+  const now = ctx.currentTime;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(master.gain.value, now);
+  master.gain.linearRampToValueAtTime(muted ? 0 : 1, now + 0.035);
+}
+
+function stopActiveOscillators() {
+  if (!ctx) return;
+  activeOscillators.forEach((osc) => {
+    try { osc.stop(ctx.currentTime + 0.01); } catch { /* oscillator may already be stopped */ }
+  });
+  activeOscillators.clear();
+}
+
 // 使用者第一次點擊時呼叫：建立 AudioContext 並補播欠著的曲子
 export function unlock() {
-  if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+  if (ctx) {
+    if (ctx.state === "suspended") ctx.resume();
+    setMasterMuted(isBgmMuted());
+    if (desiredMood && !isBgmMuted() && !currentMood) startLoop(desiredMood);
+    updateButton();
+    return;
+  }
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return; // 極舊瀏覽器：無聲降級
+  if (!AC) { updateButton(); return; } // 極舊瀏覽器：無聲降級
   ctx = new AC();
   master = ctx.createGain();
-  master.gain.value = 1;
+  master.gain.value = isBgmMuted() ? 0 : 1;
   master.connect(ctx.destination);
   if (desiredMood && !isBgmMuted()) startLoop(desiredMood);
   updateButton();
 }
 
 function scheduleNote(wave, midi, time, duration, peak) {
+  if (!ctx || !master || isBgmMuted()) return;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = wave;
@@ -72,45 +99,57 @@ function scheduleNote(wave, midi, time, duration, peak) {
   gain.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(duration, 0.08));
   osc.connect(gain);
   gain.connect(master);
+  activeOscillators.add(osc);
+  osc.addEventListener("ended", () => activeOscillators.delete(osc));
   osc.start(time);
   osc.stop(time + duration + 0.1);
 }
 
 function scheduleLoop(moodName, startTime) {
+  if (!ctx || isBgmMuted()) return;
   const mood = MOODS[moodName];
+  if (!mood) return;
   const beat = 60 / mood.bpm;
   mood.melody.forEach(([b, m, d]) => scheduleNote(mood.leadWave, m, startTime + b * beat, d * beat, mood.vol));
   mood.bassline.forEach(([b, m, d]) => scheduleNote(mood.bassWave, m, startTime + b * beat, d * beat, mood.vol * 1.25));
   const loopDur = mood.beats * beat;
   // 在這一輪快結束前，排下一輪（提前 150ms 排程避免縫隙）
   loopTimer = setTimeout(() => {
-    if (currentMood === moodName) scheduleLoop(moodName, startTime + loopDur);
-  }, (startTime + loopDur - ctx.currentTime - 0.15) * 1000);
+    if (currentMood === moodName && !isBgmMuted()) scheduleLoop(moodName, startTime + loopDur);
+  }, Math.max(0, (startTime + loopDur - ctx.currentTime - 0.15) * 1000));
 }
 
 function startLoop(moodName) {
   stopLoop();
-  if (!MOODS[moodName]) return;
+  if (!ctx || !MOODS[moodName] || isBgmMuted()) return;
+  setMasterMuted(false);
   currentMood = moodName;
   scheduleLoop(moodName, ctx.currentTime + 0.05);
 }
-function stopLoop() {
+
+function stopLoop({ stopNow = false } = {}) {
   clearTimeout(loopTimer);
   loopTimer = null;
   currentMood = null;
+  if (stopNow) stopActiveOscillators();
 }
 
 // 對外 API：切換曲風（場景載入、結局畫面呼叫）
 export function setMood(moodName) {
   desiredMood = moodName;
-  if (!ctx || isBgmMuted()) return;
+  if (!ctx || isBgmMuted()) {
+    updateButton();
+    return;
+  }
   if (currentMood === moodName) return; // 同曲不重啟
   startLoop(moodName);
 }
 
 export function stopMusic() {
   desiredMood = null;
-  stopLoop();
+  setMasterMuted(true);
+  stopLoop({ stopNow: true });
+  updateButton();
 }
 
 // 出牌特寫的音效：短促上行三連音
@@ -122,15 +161,29 @@ export function playSting() {
 
 // 靜音切換（狀態持久化；解除靜音時接續播放）
 export function toggleMute() {
+  // BGM 按鈕本身就是使用者手勢；在這裡主動 unlock，避免只換圖示但音訊未啟動。
+  unlock();
+
   const muted = !isBgmMuted();
   setBgmMuted(muted);
-  if (muted) stopLoop();
-  else if (ctx && desiredMood) startLoop(desiredMood);
+
+  if (muted) {
+    setMasterMuted(true);
+    stopLoop({ stopNow: true });
+  } else {
+    setMasterMuted(false);
+    if (ctx && desiredMood) startLoop(desiredMood);
+  }
+
   updateButton();
   return muted;
 }
 
 export function updateButton() {
   const btn = document.getElementById("btn-bgm");
-  if (btn) btn.textContent = isBgmMuted() ? "🔇" : "🔊";
+  if (!btn) return;
+  const muted = isBgmMuted();
+  btn.textContent = muted ? "🔇" : "🔊";
+  btn.title = muted ? "背景音樂：關閉，點擊開啟" : "背景音樂：開啟，點擊關閉";
+  btn.setAttribute("aria-label", btn.title);
 }
