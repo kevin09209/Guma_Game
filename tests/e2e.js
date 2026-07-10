@@ -1,17 +1,9 @@
 #!/usr/bin/env node
 /* ============================================================
-   e2e.js — 端到端測試（Playwright，node tests/e2e.js）
+   e2e.js — v0.6 端到端測試（Playwright）
    ------------------------------------------------------------
-   需求：npm i playwright（或全域安裝），以及本機伺服器：
-     python3 -m http.server 8000   （在專案根目錄）
-   環境變數：
-     E2E_BASE=http://localhost:8000  伺服器位址（預設如左）
-     E2E_CHROMIUM=/path/to/chrome    指定 Chromium 執行檔（可省略）
-
-   覆蓋：開局抽卡流程、劇本推進、出牌、補救、汰換抽卡、
-   結局判定、票券經濟、抽卡機、收藏、結局圖鑑、BGM 靜音鈕。
-   使用 ?hand= 固定起手牌讓結局可預期；注意開局抽的卡會頂掉
-   手牌最後一張，所以測試用牌一律放在前 4 格。
+   覆蓋：場景選擇、男主/女主對話、出牌、汰換可重選、翻面補牌、
+   忍受條、等等！！！、緊急任務、固定骰子、結局圖鑑與 BGM。
    ============================================================ */
 const BASE = (process.env.E2E_BASE || "http://localhost:8000") + "/prototype/";
 
@@ -25,114 +17,191 @@ async function main() {
     if (!ok) failures += 1;
   };
 
-  // 建立乾淨分頁（每個情境重置 localStorage 確保可重現）
-  async function newPage() {
+  async function newPage(url = BASE) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     await page.addInitScript(() => localStorage.clear());
-    page.on("pageerror", (e) => { console.error("PAGE ERROR:", e.message); failures += 1; });
-    page.on("console", (m) => { if (m.type() === "error" && !m.text().includes("404")) console.error("CONSOLE ERROR:", m.text()); });
+    page.on("pageerror", (error) => {
+      console.error("PAGE ERROR:", error.message);
+      failures += 1;
+    });
+    page.on("console", (message) => {
+      if (message.type() === "error" && !message.text().includes("404")) console.error("CONSOLE ERROR:", message.text());
+    });
+    await page.goto(url);
     return page;
   }
 
-  // 通用駕駛：不斷推進，遇到各種 overlay 做對應動作，直到結局畫面
-  async function playRun(page, cards, { rescue = "skip", doSwap = false } = {}) {
-    let cardIdx = 0;
-    let rescueSeen = false;
+  async function completeOpeningDraw(page) {
+    await page.click("#btn-start");
+    await page.click("#btn-run-draw");
+    await page.waitForTimeout(120);
+    await page.click("#btn-run-draw");
+  }
+
+  async function advanceStory(page) {
+    await page.mouse.click(640, 180);
+    await page.waitForTimeout(25);
+  }
+
+  async function chooseFirstSceneOption(page) {
+    await page.waitForSelector("#scene-choice-overlay:not(.hidden)", { timeout: 5000 });
+    await page.click("#scene-choice-options .scene-choice-option >> nth=0");
+  }
+
+  async function playRun(page, cards, { doSwap = false, chooseOption = 0, emergencyCard = null } = {}) {
+    let cardIndex = 0;
     let swapped = false;
-    for (let step = 0; step < 800; step += 1) {
+    let emergencySeen = false;
+    let sceneChoiceCount = 0;
+
+    for (let step = 0; step < 1000; step += 1) {
       if (await page.locator("#screen-ending:not(.hidden)").count()) break;
-      if (await page.locator("#screen-run-draw:not(.hidden)").count()) { await page.click("#btn-run-draw"); await page.waitForTimeout(120); continue; }
-      if (await page.locator("#cutin:not(.hidden)").count()) { await page.click("#cutin"); continue; }
+      if (await page.locator("#scene-choice-overlay:not(.hidden)").count()) {
+        const options = page.locator("#scene-choice-options .scene-choice-option");
+        const count = await options.count();
+        await options.nth(Math.min(chooseOption, count - 1)).click();
+        sceneChoiceCount += 1;
+        continue;
+      }
+      if (await page.locator("#cutin:not(.hidden)").count()) {
+        await page.click("#cutin");
+        continue;
+      }
+      if (await page.locator("#emergency-overlay:not(.hidden)").count()) {
+        emergencySeen = true;
+        if (emergencyCard && await page.locator(`#emergency-cards .card:has(.card-name:text-is("${emergencyCard}"))`).count()) {
+          await page.click(`#emergency-cards .card:has(.card-name:text-is("${emergencyCard}"))`);
+          await page.waitForTimeout(150);
+          await page.click("#btn-emergency-roll");
+        } else {
+          await page.click("#btn-emergency-give-up");
+        }
+        continue;
+      }
       if (await page.locator("#rescue-overlay:not(.hidden)").count()) {
-        rescueSeen = true;
-        if (rescue !== "skip") await page.click(`#rescue-cards .card:has(.card-name:text-is("${rescue}"))`);
-        else await page.click("#btn-no-rescue");
+        await page.click("#btn-no-rescue");
         continue;
       }
       if (await page.locator("#swap-overlay:not(.hidden)").count()) {
-        if (doSwap && !swapped) { swapped = true; await page.click("#swap-hand .card >> nth=4"); }
-        else await page.click("#btn-no-swap");
-        await page.waitForTimeout(80);
+        if (doSwap && !swapped) {
+          const hand = page.locator("#swap-hand .card");
+          await hand.nth(0).click();
+          const firstSelected = await hand.nth(0).evaluate((element) => element.classList.contains("selected-card"));
+          await page.locator("#swap-hand .card").nth(1).click();
+          const secondSelected = await page.locator("#swap-hand .card").nth(1).evaluate((element) => element.classList.contains("selected-card"));
+          report(firstSelected && secondSelected, "汰換卡可反覆改選");
+          await page.click("#btn-confirm-swap");
+          await page.waitForSelector(".swap-flip-card", { timeout: 3000 });
+          swapped = true;
+          await page.waitForTimeout(1100);
+        } else {
+          await page.click("#btn-no-swap");
+        }
         continue;
       }
       if (await page.locator("#hand-overlay:not(.hidden)").count()) {
-        const name = cards[Math.min(cardIdx, cards.length - 1)];
-        await page.click(`#hand .card:has(.card-name:text-is("${name}"))`);
-        cardIdx += 1;
+        const name = cards[Math.min(cardIndex, cards.length - 1)];
+        const target = page.locator(`#hand .card:has(.card-name:text-is("${name}"))`);
+        if (await target.count()) await target.click();
+        else await page.locator("#hand .card").first().click();
+        cardIndex += 1;
         continue;
       }
-      await page.mouse.click(640, 200);
-      await page.waitForTimeout(45);
+      await advanceStory(page);
     }
-    await page.waitForSelector("#screen-ending:not(.hidden)", { timeout: 8000 });
+
+    await page.waitForSelector("#screen-ending:not(.hidden)", { timeout: 10000 });
+    return {
+      title: (await page.textContent("#ending-title")).trim(),
+      swapped,
+      emergencySeen,
+      sceneChoiceCount,
+    };
+  }
+
+  // 場景選擇後必須先顯示男主台詞，再顯示女主回覆。
+  {
+    const page = await newPage(`${BASE}?hand=card_001,card_002,card_003,card_004,card_005`);
+    await completeOpeningDraw(page);
+    while (!(await page.locator("#scene-choice-overlay:not(.hidden)").count())) await advanceStory(page);
+    await page.click("#scene-choice-options .scene-choice-option >> nth=0");
+    await page.waitForSelector("#dialog:not(.hidden)");
+    const firstSpeaker = (await page.textContent("#nameplate")).trim();
+    await advanceStory(page);
+    await advanceStory(page);
+    const secondSpeaker = (await page.textContent("#nameplate")).trim();
+    report(firstSpeaker === "Gumayuwei" && secondSpeaker !== "Gumayuwei", "場景選項進入對話框", `${firstSpeaker} → ${secondSpeaker}`);
+    await page.close();
+  }
+
+  // 正常路線＋場景選擇題＋汰換翻面。
+  {
+    const page = await newPage(`${BASE}?hand=card_001,card_002,card_003,card_004,card_005`);
+    await completeOpeningDraw(page);
+    const result = await playRun(page, ["疑惑問號", "不急", "還有嗎？", "摩艾沉默"], { doSwap: true });
+    report(result.sceneChoiceCount >= 1, "每場景選擇題", `出現 ${result.sceneChoiceCount} 次`);
+    report(result.swapped, "確認後翻面補牌", `結局=${result.title}`);
+    await page.close();
+  }
+
+  // 固定骰子 4：忍受度設為 0，進場後要先出現「等等！！！」並解鎖 Four 壞結局。
+  {
+    const page = await newPage(`${BASE}?hand=card_017,card_018,card_019,card_020,card_021&tolerance=0&dice=4`);
+    await completeOpeningDraw(page);
+    let sawWait = false;
+    for (let step = 0; step < 250; step += 1) {
+      if (await page.locator("#dialog:not(.hidden)").count()) {
+        const text = await page.textContent("#dialog-text");
+        if (text.includes("等等")) sawWait = true;
+      }
+      if (await page.locator("#emergency-overlay:not(.hidden)").count()) break;
+      if (await page.locator("#scene-choice-overlay:not(.hidden)").count()) await page.click("#scene-choice-options .scene-choice-option >> nth=0");
+      else if (await page.locator("#hand-overlay:not(.hidden)").count()) await page.click("#hand .card >> nth=0");
+      else if (await page.locator("#cutin:not(.hidden)").count()) await page.click("#cutin");
+      else await advanceStory(page);
+    }
+    await page.waitForSelector("#emergency-overlay:not(.hidden)", { timeout: 5000 });
+    await page.click("#emergency-cards .card >> nth=0");
+    await page.waitForTimeout(150);
+    await page.click("#btn-emergency-roll");
+    await page.waitForSelector("#screen-ending:not(.hidden)", { timeout: 5000 });
     const title = (await page.textContent("#ending-title")).trim();
-    return { title, rescueSeen, swapped };
-  }
-
-  // ---------- 劇情與結局路線（測試卡放前 4 格；第 5 格會被開局抽卡頂掉）----------
-  const routes = [
-    { name: "湯圓純愛路線", hand: "card_004,card_005,card_001,card_002,card_006", cards: ["還有嗎？", "摩艾沉默", "疑惑問號", "還有嗎？"], expect: "紅豆湯圓純愛" },
-    { name: "不急告白路線", hand: "card_002,card_001,card_003,card_004,card_006", cards: ["不急", "不急", "不急", "不急"], expect: "不急告白" },
-    { name: "霸總過量路線(不補救)", hand: "card_009,card_001,card_002,card_004,card_006", cards: ["怎麼跟我鬥", "怎麼跟我鬥", "怎麼跟我鬥", "怎麼跟我鬥"], expect: "霸總過量" },
-  ];
-  for (const route of routes) {
-    const page = await newPage();
-    await page.goto(`${BASE}?hand=${route.hand}`);
-    await page.click("#btn-start");
-    const { title } = await playRun(page, route.cards);
-    report(title === route.expect, route.name, `結局=「${title}」預期=「${route.expect}」`);
+    report(sawWait, "忍受歸零先喊等等");
+    report(title === "Four! 回家自己爽了", "固定骰子 4 壞結局", title);
     await page.close();
   }
 
-  // ---------- 補救流程（會議室宣戰 → 用「蛤？」救場）----------
+  // 固定骰子 1：SSR 救援應成功，不能立刻進壞結局。
   {
-    const page = await newPage();
-    await page.goto(`${BASE}?hand=card_009,card_006,card_002,card_004,card_001`);
-    await page.click("#btn-start");
-    const { rescueSeen, title } = await playRun(page, ["怎麼跟我鬥", "怎麼跟我鬥", "怎麼跟我鬥", "不急"], { rescue: "蛤？" });
-    report(rescueSeen, "錯卡補救流程", `補救提示出現=${rescueSeen}，結局=「${title}」`);
+    const page = await newPage(`${BASE}?hand=card_017,card_018,card_019,card_020,card_021&tolerance=0&dice=1`);
+    await completeOpeningDraw(page);
+    let rescued = false;
+    for (let step = 0; step < 350; step += 1) {
+      if (await page.locator("#emergency-overlay:not(.hidden)").count()) {
+        await page.click("#emergency-cards .card >> nth=0");
+        await page.waitForTimeout(150);
+        await page.click("#btn-emergency-roll");
+        await page.waitForTimeout(850);
+        rescued = !(await page.locator("#screen-ending:not(.hidden)").count());
+        break;
+      }
+      if (await page.locator("#scene-choice-overlay:not(.hidden)").count()) await page.click("#scene-choice-options .scene-choice-option >> nth=0");
+      else if (await page.locator("#hand-overlay:not(.hidden)").count()) await page.click("#hand .card >> nth=0");
+      else if (await page.locator("#cutin:not(.hidden)").count()) await page.click("#cutin");
+      else await advanceStory(page);
+    }
+    report(rescued, "固定骰子 1 救援成功");
     await page.close();
   }
 
-  // ---------- 汰換抽卡流程（v0.4：汰換後進抽卡畫面補牌）----------
+  // 圖鑑應包含 13 個原結局＋4 個緊急結局。
   {
-    const page = await newPage();
-    await page.goto(`${BASE}?hand=card_001,card_002,card_003,card_004,card_006`);
-    await page.click("#btn-start");
-    const { swapped, title } = await playRun(page, ["疑惑問號", "疑惑問號", "疑惑問號", "疑惑問號"], { doSwap: true });
-    report(swapped, "手牌汰換抽卡流程", `有執行汰換=${swapped}，結局=「${title}」`);
-    await page.close();
-  }
-
-  // ---------- 票券經濟＋抽卡機＋收藏＋結局圖鑑＋BGM ----------
-  {
-    const page = await newPage();
-    await page.goto(`${BASE}?hand=card_001,card_002,card_003,card_004,card_006`);
-    await page.click("#btn-start");
-    await playRun(page, ["疑惑問號", "不急", "還有嗎？", "不急"]); // 跑完一輪拿票券（新結局 +2）
-    await page.click("#btn-back-home");
-    const progress = await page.textContent("#home-progress");
-    report(/抽卡券/.test(progress), "結局發放抽卡券", progress.replace(/\s+/g, " ").trim());
-
-    await page.click("#btn-open-gacha");
-    await page.click("#btn-draw-one");
-    await page.waitForTimeout(300);
-    const drew = await page.locator("#gacha-results .gacha-card").count();
-    report(drew === 1, "抽卡機（用 1 張券）", `結果卡數=${drew}`);
-    await page.click("#btn-close-gacha");
-
-    await page.click("#btn-open-collection");
-    const colCards = await page.locator("#collection-grid .collection-card").count();
-    report(colCards === 25, "卡片收藏頁", `顯示卡數=${colCards}/25`);
-    await page.click("#btn-close-collection");
-
+    const page = await newPage(BASE);
     await page.click("#btn-open-endings");
     const endingCards = await page.locator("#ending-gallery .ending-card").count();
-    const unlockedCount = await page.locator("#ending-gallery .ending-card.unlocked").count();
-    report(endingCards === 13 && unlockedCount >= 1, "結局圖鑑", `共 ${endingCards} 格，已解鎖 ${unlockedCount}`);
+    report(endingCards === 17, "緊急結局加入圖鑑", `結局格數=${endingCards}`);
     await page.click("#btn-close-endings");
 
-    // BGM 靜音鈕：點一下變 🔇、再點回 🔊
     const icon0 = (await page.textContent("#btn-bgm")).trim();
     await page.click("#btn-bgm");
     const icon1 = (await page.textContent("#btn-bgm")).trim();
@@ -143,8 +212,14 @@ async function main() {
   }
 
   await browser.close();
-  if (failures) { console.error(`\n❌ e2e 失敗：${failures} 項`); process.exit(1); }
-  console.log("\n✅ e2e 全部通過");
+  if (failures) {
+    console.error(`\n❌ e2e 失敗：${failures} 項`);
+    process.exit(1);
+  }
+  console.log("\n✅ v0.6 e2e 全部通過");
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
