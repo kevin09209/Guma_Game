@@ -1,110 +1,125 @@
 {
-  "_comment": "道具卡資料。effects 是「基礎效果」，實際每個事件可以覆寫（見 events.json 中各選項的 effects）。",
+  "_comment": "道具卡資料（v0.2 牌庫 10 張）。effects 是「基礎效果」：場景沒有為這張卡寫專屬結果時，通用結果就用這組數值。tags 會參與標籤加成（場景屬性、女主喜好）。帶有「補救」標籤的卡可以在錯卡補救時使用。",
   "cards": [
     {
       "id": "card_001",
       "name": "疑惑問號",
       "rarity": "N",
-      "type": [
-        "情緒卡",
-        "台詞卡"
-      ],
+      "type": ["情緒卡", "台詞卡"],
       "line": "？？？",
       "action": "皺眉歪頭，周圍浮現問號",
       "description": "面對難懂問題時的萬用反應，裝傻界的基本功。",
-      "effects": {
-        "favorability": 0,
-        "awkwardness": -2,
-        "comedy": 8,
-        "sincerity": 0,
-        "confidence": 0,
-        "social_death": 0
-      },
+      "tags": ["搞笑", "裝傻", "低風險", "補救"],
+      "effects": { "favorability": 2, "awkwardness": -2, "comedy": 6, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 0, "battle": 0 },
       "image": "assets/cards/card_001.png"
     },
     {
       "id": "card_002",
       "name": "不急",
       "rarity": "N",
-      "type": [
-        "台詞卡",
-        "動作卡"
-      ],
+      "type": ["台詞卡", "動作卡"],
       "line": "不急。",
       "action": "雙手交叉，露出微笑，自信但欠揍",
       "description": "無論場面多失控，都能假裝一切在掌握之中。",
-      "effects": {
-        "favorability": 0,
-        "awkwardness": -3,
-        "comedy": 8,
-        "sincerity": 0,
-        "confidence": 10,
-        "social_death": 0
-      },
+      "tags": ["自信", "搞笑", "低風險"],
+      "effects": { "favorability": 2, "awkwardness": -2, "comedy": 5, "sincerity": 0, "confidence": 8, "social_death": 0, "appetite": 0, "battle": 0 },
       "image": "assets/cards/card_002.png"
     },
     {
       "id": "card_003",
       "name": "我還沒上車啊",
       "rarity": "N",
-      "type": [
-        "台詞卡",
-        "動作卡"
-      ],
+      "type": ["台詞卡", "動作卡"],
       "line": "我還沒上車啊！",
       "action": "張開雙手崩潰大喊",
       "description": "當世界拋下你的時候，至少喊得夠大聲。",
-      "effects": {
-        "favorability": 0,
-        "awkwardness": 0,
-        "comedy": 12,
-        "sincerity": 0,
-        "confidence": 0,
-        "social_death": 8
-      },
+      "tags": ["搞笑", "社死", "補救"],
+      "effects": { "favorability": 2, "awkwardness": 0, "comedy": 10, "sincerity": 0, "confidence": 0, "social_death": 6, "appetite": 0, "battle": 0 },
       "image": "assets/cards/card_003.png"
     },
     {
       "id": "card_004",
       "name": "還有嗎？",
       "rarity": "N",
-      "type": [
-        "台詞卡",
-        "食物卡"
-      ],
+      "type": ["台詞卡", "食物卡"],
       "line": "還有嗎？",
       "action": "端著紅豆湯圓，眼神真誠",
       "description": "對食物的執著，偶爾會誤打誤撞變成真誠。",
-      "effects": {
-        "favorability": 0,
-        "awkwardness": 0,
-        "comedy": 8,
-        "sincerity": 5,
-        "confidence": 0,
-        "social_death": 0
-      },
+      "tags": ["食物", "搞笑", "裝可愛", "低風險"],
+      "effects": { "favorability": 3, "awkwardness": 0, "comedy": 5, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 8, "battle": 0 },
       "image": "assets/cards/card_004.png"
     },
     {
       "id": "card_005",
       "name": "摩艾沉默",
       "rarity": "UR",
-      "type": [
-        "雕像卡",
-        "沉默卡"
-      ],
+      "type": ["雕像卡", "沉默卡"],
       "line": "……",
       "action": "整個人變成摩艾石像",
       "description": "不知道怎麼回答的時候，就成為地景的一部分。",
-      "effects": {
-        "favorability": 0,
-        "awkwardness": -5,
-        "comedy": 4,
-        "sincerity": 0,
-        "confidence": 0,
-        "social_death": 0
-      },
+      "tags": ["沉默", "文青", "神秘", "補救"],
+      "effects": { "favorability": 3, "awkwardness": -4, "comedy": 3, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 0, "battle": 0 },
       "image": "assets/cards/card_005.png"
+    },
+    {
+      "id": "card_006",
+      "name": "蛤？",
+      "rarity": "N",
+      "type": ["台詞卡", "情緒卡"],
+      "line": "蛤？",
+      "action": "嘴巴微張，眼神空白",
+      "description": "宇宙通用的萬能回應，聽不懂的時候特別好用。",
+      "tags": ["搞笑", "裝傻", "低風險", "補救"],
+      "effects": { "favorability": 1, "awkwardness": 1, "comedy": 5, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 0, "battle": 0 },
+      "image": "assets/cards/card_006.png"
+    },
+    {
+      "id": "card_007",
+      "name": "傻眼白貓",
+      "rarity": "R",
+      "type": ["變身卡"],
+      "line": "喵？",
+      "action": "變成白貓身體，臉保留 Gumayuwei 五官",
+      "description": "裝傻、賣萌、逃避質問三合一，貓咪什麼都不知道。",
+      "tags": ["裝可愛", "布偶", "搞笑", "補救"],
+      "effects": { "favorability": 5, "awkwardness": -3, "comedy": 6, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 0, "battle": 0 },
+      "image": "assets/cards/card_007.png"
+    },
+    {
+      "id": "card_008",
+      "name": "臭臭泥",
+      "rarity": "R",
+      "type": ["變身卡"],
+      "line": "我融化了。",
+      "action": "化成一攤紫色泥怪，表情厭世",
+      "description": "社交電量歸零的物理表現，融化但誠實。",
+      "tags": ["搞笑", "裝可憐", "補救"],
+      "effects": { "favorability": 2, "awkwardness": 2, "comedy": 8, "sincerity": 0, "confidence": 0, "social_death": 0, "appetite": 0, "battle": 0 },
+      "image": "assets/cards/card_008.png"
+    },
+    {
+      "id": "card_009",
+      "name": "怎麼跟我鬥",
+      "rarity": "SR",
+      "type": ["台詞卡", "自信卡"],
+      "line": "怎麼跟我鬥。",
+      "action": "黑西裝墨鏡，霸氣姿態",
+      "description": "高風險高回報的霸總卡，用對場合是氣場，用錯場合是災難。",
+      "tags": ["自信", "霸總", "高風險", "挑釁"],
+      "effects": { "favorability": 0, "awkwardness": 4, "comedy": 6, "sincerity": 0, "confidence": 12, "social_death": 2, "appetite": 0, "battle": 2 },
+      "image": "assets/cards/card_009.png"
+    },
+    {
+      "id": "card_010",
+      "name": "計畫通り",
+      "rarity": "SR",
+      "type": ["台詞卡", "智謀卡"],
+      "line": "計畫通り。",
+      "action": "邪魅一笑，彷彿一切都在掌握之中",
+      "description": "預判成功時的勝利宣言，就算沒有計畫也要講。",
+      "tags": ["自信", "智力", "搞笑"],
+      "effects": { "favorability": 2, "awkwardness": 1, "comedy": 6, "sincerity": 0, "confidence": 8, "social_death": 0, "appetite": 0, "battle": 0 },
+      "image": "assets/cards/card_010.png"
     }
   ]
 }

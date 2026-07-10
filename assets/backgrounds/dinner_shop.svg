@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <!-- 台北巷口的紅豆湯圓店：溫暖木質調的小店 -->
+  <defs>
+    <linearGradient id="dwall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8d5b8"/>
+      <stop offset="1" stop-color="#d4bd9a"/>
+    </linearGradient>
+    <linearGradient id="dfloor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a6a4e"/>
+      <stop offset="1" stop-color="#6e5238"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="620" fill="url(#dwall)"/>
+  <rect y="620" width="1600" height="280" fill="url(#dfloor)"/>
+
+  <!-- 溫暖的吊燈 -->
+  <g>
+    <line x1="400" y1="0" x2="400" y2="120" stroke="#5a4632" stroke-width="6"/>
+    <path d="M 360 120 h 80 l -14 60 h -52 z" fill="#e8a04a"/>
+    <ellipse cx="400" cy="186" rx="20" ry="8" fill="#ffe9b8"/>
+    <line x1="1200" y1="0" x2="1200" y2="120" stroke="#5a4632" stroke-width="6"/>
+    <path d="M 1160 120 h 80 l -14 60 h -52 z" fill="#e8a04a"/>
+    <ellipse cx="1200" cy="186" rx="20" ry="8" fill="#ffe9b8"/>
+  </g>
+  <polygon points="330,180 470,180 560,620 240,620" fill="#ffe9b8" opacity="0.16"/>
+  <polygon points="1130,180 1270,180 1360,620 1040,620" fill="#ffe9b8" opacity="0.16"/>
+
+  <!-- 牆上的菜單木牌 -->
+  <g font-family="'PingFang TC','Noto Sans TC',sans-serif" text-anchor="middle">
+    <rect x="640" y="120" width="320" height="86" rx="10" fill="#5a4632"/>
+    <text x="800" y="176" font-size="44" fill="#ffe9b8" font-weight="700">紅豆湯圓</text>
+    <rect x="620" y="230" width="150" height="56" rx="8" fill="#7a5f42"/>
+    <text x="695" y="268" font-size="28" fill="#f2e6d0">花生湯</text>
+    <rect x="830" y="230" width="150" height="56" rx="8" fill="#7a5f42"/>
+    <text x="905" y="268" font-size="28" fill="#f2e6d0">燒麻糬</text>
+    <rect x="700" y="306" width="200" height="50" rx="8" fill="#a83c3c"/>
+    <text x="800" y="340" font-size="26" fill="#ffe2d0">隱藏版・鹹湯圓</text>
+  </g>
+
+  <!-- 店門口的暖簾 -->
+  <rect x="60" y="90" width="360" height="30" rx="6" fill="#a83c3c"/>
+  <g fill="#c25050">
+    <rect x="70" y="120" width="108" height="150"/>
+    <rect x="188" y="120" width="108" height="150"/>
+    <rect x="306" y="120" width="104" height="150"/>
+  </g>
+
+  <!-- 桌子與兩碗湯圓 -->
+  <ellipse cx="800" cy="640" rx="360" ry="56" fill="#5a4632"/>
+  <rect x="480" y="640" width="640" height="120" fill="#4a3826"/>
+  <!-- 湯圓碗 x2 -->
+  <g>
+    <ellipse cx="660" cy="612" rx="86" ry="26" fill="#f2ece0"/>
+    <path d="M 574 612 q 86 66 172 0 z" fill="#e0d6c4"/>
+    <ellipse cx="660" cy="608" rx="64" ry="16" fill="#8a3c3c"/>
+    <circle cx="640" cy="602" r="10" fill="#fff8f0"/>
+    <circle cx="672" cy="606" r="10" fill="#fff8f0"/>
+    <circle cx="656" cy="612" r="10" fill="#fff8f0"/>
+  </g>
+  <g>
+    <ellipse cx="950" cy="612" rx="86" ry="26" fill="#f2ece0"/>
+    <path d="M 864 612 q 86 66 172 0 z" fill="#e0d6c4"/>
+    <ellipse cx="950" cy="608" rx="64" ry="16" fill="#8a3c3c"/>
+    <circle cx="932" cy="604" r="10" fill="#fff8f0"/>
+    <circle cx="964" cy="608" r="10" fill="#fff8f0"/>
+  </g>
+  <!-- 熱氣 -->
+  <g stroke="#ffffff" stroke-width="7" fill="none" opacity="0.65" stroke-linecap="round">
+    <path d="M 640 560 q 12 -26 0 -50"/>
+    <path d="M 678 566 q -12 -28 0 -54"/>
+    <path d="M 932 560 q 12 -26 0 -50"/>
+    <path d="M 968 566 q -12 -28 0 -54"/>
+  </g>
+
+  <!-- 右側窗外的夜色 -->
+  <rect x="1290" y="120" width="250" height="330" rx="10" fill="#2c3350"/>
+  <circle cx="1460" cy="180" r="26" fill="#f4ecd4"/>
+  <g fill="#ffd985" opacity="0.8">
+    <rect x="1320" y="330" width="30" height="120"/>
+    <rect x="1370" y="300" width="26" height="150"/>
+    <rect x="1420" y="350" width="34" height="100"/>
+    <rect x="1480" y="320" width="26" height="130"/>
+  </g>
+  <rect x="1290" y="120" width="250" height="330" rx="10" fill="none" stroke="#8a6a4e" stroke-width="12"/>
+</svg>

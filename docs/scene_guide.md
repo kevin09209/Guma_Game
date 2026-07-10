@@ -6,25 +6,30 @@
 
 ## 1. 場景圖是怎麼被遊戲使用的
 
-遊戲的每個「事件」都在 `data/events.json` 裡，其中 `background` 欄位指定這個事件用哪張背景圖：
+遊戲的每個「場景」都在 `data/scenes.json` 裡，其中 `background` 欄位指定這個場景用哪張背景圖：
 
 ```json
 {
-  "event_id": "event_001",
-  "title": "茶水間巧遇",
+  "scene_id": "ev_pantry_invite",
+  "title": "下班的邀約",
   "location": "公司茶水間",
   "background": "assets/backgrounds/pantry.svg",   ← 就是這一行
   ...
 }
 ```
 
-目前的三張場景圖都放在 `assets/backgrounds/`：
+目前的場景圖都放在 `assets/backgrounds/`：
 
-| 檔案 | 場景 | 使用事件 |
+| 檔案 | 場景 | 使用場景節點 |
 |---|---|---|
-| `pantry.svg` | 公司茶水間（午後） | 第 1 話 茶水間巧遇 |
-| `elevator.svg` | 公司電梯口（傍晚） | 第 2 話 下班邀約 |
-| `office.svg` | 辦公室（加班夜） | 第 3 話 臨時加班危機 |
+| `pantry.svg` | 公司茶水間（午後） | 下班的邀約、八卦危機 |
+| `elevator.svg` | 公司電梯（傍晚） | 電梯裡的第二次機會 |
+| `meeting_room.svg` | 公司會議室（白天） | 週會的臨時點名 |
+| `convenience.svg` | 便利商店（日光燈） | 冰棒二選一 |
+| `dinner_shop.svg` | 紅豆湯圓店（暖色） | 巷口的紅豆湯圓店 |
+| `night_market.svg` | 台北夜市（夜晚） | 夜市制霸戰 |
+| `street.svg` | 台北夜晚街頭 | 告白時刻 |
+| `office.svg` | 辦公室（加班夜） | 備用（目前未使用） |
 
 ---
 
