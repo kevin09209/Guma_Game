@@ -16,13 +16,12 @@
 
   <!-- 視窗容器：負責把 16:9 的舞台置中、縮放到適配螢幕 -->
   <div id="viewport">
-    <!-- 舞台：固定 1280x720 的遊戲畫面，所有東西都畫在這裡面 -->
     <div id="stage">
 
       <!-- 圖層 1：場景背景 -->
       <img id="bg" class="bg" src="" alt="" />
 
-      <!-- 圖層 2：角色立繪（左：Gumayuwei，右：女主角） -->
+      <!-- 圖層 2：角色立繪 -->
       <div id="sprite-guma" class="sprite sprite-left">
         <div class="emotion-badge hidden"></div>
         <img src="../assets/characters/gumayuwei.svg" alt="Gumayuwei" />
@@ -38,20 +37,20 @@
         <div id="hud-stats" class="hud-stats"></div>
       </header>
 
-      <!-- 圖層 4：對話框（galgame 核心：下方文字框，點擊推進） -->
+      <!-- 圖層 4：對話框 -->
       <div id="dialog" class="dialog hidden">
         <div id="nameplate" class="nameplate"></div>
         <p id="dialog-text" class="dialog-text"></p>
         <span id="advance-hint" class="advance-hint">▼</span>
       </div>
 
-      <!-- 圖層 5：手牌選單（劇情節點才彈出） -->
+      <!-- 圖層 5：手牌選單 -->
       <div id="hand-overlay" class="hand-overlay hidden">
-        <p class="hand-hint">－ 選擇一張道具卡，操控 Gumayuwei 的反應 －</p>
+        <p class="hand-hint">－ 選擇一張已收藏的道具卡，操控 Gumayuwei 的反應 －</p>
         <div id="hand" class="hand"></div>
       </div>
 
-      <!-- 圖層 6：出牌特寫演出（全螢幕 cut-in） -->
+      <!-- 圖層 6：出牌特寫演出 -->
       <div id="cutin" class="cutin hidden">
         <div class="cutin-speedlines"></div>
         <div id="cutin-card" class="cutin-card"></div>
@@ -63,7 +62,7 @@
         </div>
       </div>
 
-      <!-- 圖層 7：錯卡補救提示（危險場面才出現） -->
+      <!-- 圖層 7：錯卡補救提示 -->
       <div id="rescue-overlay" class="rescue-overlay hidden">
         <div class="rescue-box">
           <p class="rescue-title">⚠ 場面即將死亡</p>
@@ -73,36 +72,79 @@
         </div>
       </div>
 
-      <!-- 圖層 8：手牌汰換（每次出牌後可淘汰 1 張重抽） -->
+      <!-- 圖層 8：手牌汰換 -->
       <div id="swap-overlay" class="swap-overlay hidden">
         <div class="swap-box">
           <p class="swap-title">手牌汰換</p>
-          <p class="swap-hint">可以淘汰 1 張手牌，從牌庫重抽 1 張（點卡片淘汰）。</p>
+          <p class="swap-hint">可以淘汰 1 張手牌，從你的卡片收藏中重抽 1 張（點卡片淘汰）。</p>
           <div id="swap-hand" class="hand hand-small"></div>
           <p id="swap-result" class="swap-result hidden"></p>
           <button id="btn-no-swap" class="btn btn-ghost">保留目前手牌，繼續 ▶</button>
         </div>
       </div>
 
-      <!-- 圖層 9：開始畫面 -->
+      <!-- 圖層 9：首頁 / 主選單 -->
       <div id="screen-start" class="fullscreen-overlay">
-        <p class="start-tag">搞笑戀愛模擬器</p>
+        <p class="start-tag">v0.4｜抽卡 × 收藏 × 結局圖鑑</p>
         <h1 class="start-title">Gumayuwei 約會模擬器</h1>
         <p class="start-subtitle">— 台北・公司篇 —</p>
         <p class="start-desc">
           你是 Gumayuwei，一位在台北上班、看起來厭世但意外有迷因魅力的普通男子。<br />
-          牌庫 10 張道具卡，起手 5 張。每一張卡，都會把約會帶往不同的地方。
+          牌庫 25 張道具卡，先抽卡、再用收藏中的卡片挑戰荒謬戀愛分支。
         </p>
-        <button id="btn-start" class="btn">▶ 開始上班</button>
+        <div id="home-progress" class="home-progress"></div>
+        <div class="menu-buttons">
+          <button id="btn-start" class="btn">▶ 開始上班</button>
+          <button id="btn-open-gacha" class="btn btn-secondary">🎴 抽卡</button>
+          <button id="btn-open-collection" class="btn btn-secondary">📚 卡片收藏</button>
+          <button id="btn-open-endings" class="btn btn-secondary">🏁 結局圖鑑</button>
+        </div>
       </div>
 
-      <!-- 圖層 10：結局畫面 -->
+      <!-- 圖層 10：抽卡畫面 -->
+      <div id="screen-gacha" class="fullscreen-overlay hidden screen-panel">
+        <button id="btn-close-gacha" class="panel-close">×</button>
+        <p class="start-tag">Card Gacha</p>
+        <h1 class="panel-title">迷因抽卡機</h1>
+        <p id="gacha-summary" class="panel-subtitle"></p>
+        <div class="gacha-actions">
+          <button id="btn-draw-one" class="btn">抽 1 張</button>
+          <button id="btn-draw-ten" class="btn">十連抽</button>
+        </div>
+        <div id="gacha-results" class="gacha-results"></div>
+        <p class="panel-note">新手第一次十連保底 SR 以上。重複卡會轉成迷因碎片，可作為後續商店與升級系統素材。</p>
+      </div>
+
+      <!-- 圖層 11：卡片收藏 -->
+      <div id="screen-collection" class="fullscreen-overlay hidden screen-panel">
+        <button id="btn-close-collection" class="panel-close">×</button>
+        <p class="start-tag">Card Collection</p>
+        <h1 class="panel-title">卡片收藏</h1>
+        <p id="collection-summary" class="panel-subtitle"></p>
+        <div id="collection-grid" class="gallery-grid"></div>
+      </div>
+
+      <!-- 圖層 12：結局圖鑑 -->
+      <div id="screen-endings" class="fullscreen-overlay hidden screen-panel">
+        <button id="btn-close-endings" class="panel-close">×</button>
+        <p class="start-tag">Ending Gallery</p>
+        <h1 class="panel-title">結局圖鑑</h1>
+        <p id="ending-summary" class="panel-subtitle"></p>
+        <div id="ending-progress-bar" class="progress-bar"><span></span></div>
+        <div id="ending-gallery" class="ending-gallery"></div>
+      </div>
+
+      <!-- 圖層 13：結局畫面 -->
       <div id="screen-ending" class="fullscreen-overlay hidden">
         <p class="start-tag">— 結局 —</p>
         <h1 id="ending-title" class="ending-title"></h1>
         <p id="ending-text" class="ending-text"></p>
         <div id="ending-stats" class="ending-stats"></div>
-        <button id="btn-restart" class="btn">↻ 再來一次（重抽手牌）</button>
+        <div class="menu-buttons compact">
+          <button id="btn-restart" class="btn">↻ 再來一次</button>
+          <button id="btn-ending-gallery" class="btn btn-secondary">🏁 查看結局圖鑑</button>
+          <button id="btn-back-home" class="btn btn-secondary">回主選單</button>
+        </div>
       </div>
 
     </div>
