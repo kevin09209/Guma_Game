@@ -36,6 +36,19 @@ const forcedDice = query.get("dice");
 const debugTolerance = Number(query.get("tolerance"));
 const debugScene = query.get("scene");
 
+const CARD_LEAD_INS = [
+  "其實……",
+  "我想說的是……",
+  "不是，我的意思是……",
+  "欸妳先聽我一下……",
+  "先別急，我這邊有個想法……",
+  "等等，我整理一下語言……",
+  "理論上來說……",
+  "如果從另一個角度看……",
+  "其實我剛剛就在想……",
+  "我突然靈光一閃……",
+];
+
 const state = {
   stats: freshStats(),
   tolerance: TOLERANCE_MAX,
@@ -78,6 +91,23 @@ function freshStats() {
 }
 
 const currentScene = () => getScene(state.sceneId);
+
+function randomPick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function buildCardLeadIn(card, emotion = "thinking") {
+  return {
+    type: "dialogue",
+    speaker: "guma",
+    emotion,
+    text: `${randomPick(CARD_LEAD_INS)} 「${card.line}」`,
+  };
+}
+
+function prependCardLeadIn(lines, card, emotion = "thinking") {
+  return [buildCardLeadIn(card, emotion), ...(Array.isArray(lines) ? lines : [])];
+}
 
 function getPlayablePool() {
   let owned = store.getOwnedIds().filter((id) => getCard(id));
@@ -351,7 +381,8 @@ function playCard(cardId) {
   applyEffects(combined);
   renderHud(Object.keys(combined));
   showCutin(card, result.effects, bonus, () => {
-    playScript(templateScript(result.script, { card_name: card.name }), () => afterResult(cardId));
+    const resolvedScript = templateScript(result.script, { card_name: card.name });
+    playScript(prependCardLeadIn(resolvedScript, card, "thinking"), () => afterResult(cardId));
   });
 }
 
@@ -402,10 +433,12 @@ function maybeNormalRescue() {
   candidates.forEach((id) => {
     box.appendChild(buildCardButton(id, (rescueId) => {
       $("rescue-overlay").classList.add("hidden");
+      const rescueCard = getCard(rescueId);
       state.cardUse[rescueId] = (state.cardUse[rescueId] || 0) + 1;
       applyEffects(rescue.effects || {});
       renderHud(Object.keys(rescue.effects || {}));
-      playScript(templateScript(rescue.script, { rescue_card_name: getCard(rescueId).name }), openSwap);
+      const resolvedScript = templateScript(rescue.script, { rescue_card_name: rescueCard.name });
+      playScript(prependCardLeadIn(resolvedScript, rescueCard, "awkward"), openSwap);
     }));
   });
   $("rescue-overlay").classList.remove("hidden");
@@ -485,6 +518,7 @@ function emergencySuccess(card, face, power) {
   $("emergency-overlay").classList.add("hidden");
   renderHud();
   playScript([
+    buildCardLeadIn(card, "shout"),
     { type: "narration", text: `緊急救援成功！${card.name} 被放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
     { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛那聲『等等』很吵，但這次至少真的有救到。" },
   ], openSwap);
