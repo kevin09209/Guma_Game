@@ -71,38 +71,86 @@
 }
 
 .swap-box {
-  display: flex;
-  flex-direction: column;
-  max-height: 88%;
+  width: min(1120px, calc(100% - 56px));
+  max-height: calc(100% - 56px);
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  justify-items: center;
+  align-items: start;
+  gap: 10px;
+  padding: 18px 20px 20px;
 }
 
 .swap-box .hand-small {
-  overflow-y: auto;
-  padding-bottom: 12px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 22px 18px 12px;
+  margin-bottom: 0;
+  scroll-padding-inline: 18px;
+}
+
+.swap-box .hand-small::-webkit-scrollbar {
+  height: 8px;
+}
+
+.swap-box .hand-small::-webkit-scrollbar-thumb {
+  background: rgba(255, 211, 77, 0.32);
+  border-radius: 999px;
 }
 
 .swap-actions {
-  position: sticky;
-  bottom: 0;
+  width: 100%;
+  position: static;
   z-index: 3;
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 14px;
-  margin-top: 14px;
-  padding: 14px 0 4px;
-  background: linear-gradient(180deg, rgba(8, 8, 16, 0), rgba(8, 8, 16, 0.96) 36%);
+  margin-top: 0;
+  padding: 4px 0 0;
+  background: none;
 }
 
 .swap-select-card {
+  position: relative;
+  flex: 0 0 auto;
   transition: transform 150ms ease, opacity 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
 }
 
 .swap-select-card.selected-card {
-  transform: translateY(-18px) scale(1.06);
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 18px 40px rgba(255, 211, 77, 0.18), 0 16px 34px rgba(0, 0, 0, 0.48);
 }
 
 .swap-select-card.selected-card::after {
   content: "準備汰換";
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 211, 77, 0.92);
+  color: #201a00;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+}
+
+.swap-result {
+  width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .swap-flip-card {
@@ -177,4 +225,29 @@
 .emergency-rule.compact span {
   min-width: 96px;
   text-align: center;
+}
+
+@media (max-height: 760px) {
+  .swap-box {
+    gap: 8px;
+    padding-top: 12px;
+    padding-bottom: 16px;
+  }
+
+  .swap-box .hand-small {
+    padding-top: 12px;
+  }
+
+  .hand-small .card {
+    width: 150px;
+  }
+
+  .swap-select-card.selected-card {
+    transform: translateY(-6px) scale(1.02);
+  }
+
+  .swap-actions .btn {
+    padding: 11px 24px;
+    font-size: 16px;
+  }
 }
