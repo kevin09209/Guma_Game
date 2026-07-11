@@ -30,24 +30,14 @@ import {
   DICE_FACES, rollDice, scaleEffects, rescuePower,
   eligibleEmergencyCards, findEmergencyEnding,
 } from "./js/emergency.js";
+import {
+  loadCardLeadIns, buildCardLeadIn,
+} from "./js/card-lead-ins.js";
 
 const query = new URLSearchParams(location.search);
 const forcedDice = query.get("dice");
 const debugTolerance = Number(query.get("tolerance"));
 const debugScene = query.get("scene");
-
-const CARD_LEAD_INS = [
-  "其實……",
-  "我想說的是……",
-  "不是，我的意思是……",
-  "欸妳先聽我一下……",
-  "先別急，我這邊有個想法……",
-  "等等，我整理一下語言……",
-  "理論上來說……",
-  "如果從另一個角度看……",
-  "其實我剛剛就在想……",
-  "我突然靈光一閃……",
-];
 
 const state = {
   stats: freshStats(),
@@ -70,6 +60,7 @@ const state = {
   afterScript: null,
   lastDialogue: null,
   lastUsedCard: null,
+  lastCardLeadIn: "",
   pendingNext: null,
   pendingDanger: null,
   pendingDiscard: null,
@@ -92,21 +83,24 @@ function freshStats() {
 
 const currentScene = () => getScene(state.sceneId);
 
-function randomPick(list) {
-  return list[Math.floor(Math.random() * list.length)];
-}
-
-function buildCardLeadIn(card, emotion = "thinking") {
+function createCardLeadIn(card, context = "normal", emotion = "thinking") {
+  const result = buildCardLeadIn({
+    card,
+    sceneId: state.sceneId,
+    context,
+    previous: state.lastCardLeadIn,
+  });
+  state.lastCardLeadIn = result.signature;
   return {
     type: "dialogue",
     speaker: "guma",
     emotion,
-    text: `${randomPick(CARD_LEAD_INS)} 「${card.line}」`,
+    text: result.text,
   };
 }
 
-function prependCardLeadIn(lines, card, emotion = "thinking") {
-  return [buildCardLeadIn(card, emotion), ...(Array.isArray(lines) ? lines : [])];
+function prependCardLeadIn(lines, card, context = "normal", emotion = "thinking") {
+  return [createCardLeadIn(card, context, emotion), ...(Array.isArray(lines) ? lines : [])];
 }
 
 function getPlayablePool() {
@@ -382,7 +376,7 @@ function playCard(cardId) {
   renderHud(Object.keys(combined));
   showCutin(card, result.effects, bonus, () => {
     const resolvedScript = templateScript(result.script, { card_name: card.name });
-    playScript(prependCardLeadIn(resolvedScript, card, "thinking"), () => afterResult(cardId));
+    playScript(prependCardLeadIn(resolvedScript, card, "normal", "thinking"), () => afterResult(cardId));
   });
 }
 
@@ -438,7 +432,7 @@ function maybeNormalRescue() {
       applyEffects(rescue.effects || {});
       renderHud(Object.keys(rescue.effects || {}));
       const resolvedScript = templateScript(rescue.script, { rescue_card_name: rescueCard.name });
-      playScript(prependCardLeadIn(resolvedScript, rescueCard, "awkward"), openSwap);
+      playScript(prependCardLeadIn(resolvedScript, rescueCard, "rescue", "awkward"), openSwap);
     }));
   });
   $("rescue-overlay").classList.remove("hidden");
@@ -518,7 +512,7 @@ function emergencySuccess(card, face, power) {
   $("emergency-overlay").classList.add("hidden");
   renderHud();
   playScript([
-    buildCardLeadIn(card, "shout"),
+    createCardLeadIn(card, "emergency", "shout"),
     { type: "narration", text: `緊急救援成功！${card.name} 被放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
     { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛那聲『等等』很吵，但這次至少真的有救到。" },
   ], openSwap);
@@ -730,6 +724,7 @@ function resetRunState() {
   state.pendingNext = null;
   state.pendingDanger = null;
   state.lastUsedCard = null;
+  state.lastCardLeadIn = "";
   state.pendingDiscard = null;
   state.runDrawCardId = null;
   state.lastDialogue = null;
@@ -757,7 +752,7 @@ async function init() {
   fitStage();
   window.addEventListener("resize", fitStage);
   try {
-    await loadData();
+    await Promise.all([loadData(), loadCardLeadIns()]);
   } catch (error) {
     const box = document.createElement("div");
     box.className = "load-error";
