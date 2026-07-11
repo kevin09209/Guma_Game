@@ -32,7 +32,7 @@ function pick(list, avoid = "") {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export function buildCardLeadIn({ card, sceneId, context = "normal", previous = "", quoteText = "" }) {
+export function buildCardLeadIn({ card, sceneId, context = "normal", previous = "" }) {
   const contextLine = pick(CONFIG.contexts?.[context], previous);
   const sceneLine = pick(CONFIG.scenes?.[sceneId], previous);
   const rarityLine = pick(CONFIG.rarity?.[card?.rarity], previous);
@@ -44,9 +44,8 @@ export function buildCardLeadIn({ card, sceneId, context = "normal", previous = 
   if (rarityLine) parts.push(rarityLine);
   if (!parts.length && fallback) parts.push(fallback);
 
-  const spokenLine = quoteText || card.line;
   return {
-    text: `${parts.join(" ")} 「${spokenLine}」`,
+    text: parts.join(" "),
     signature: parts.join(" "),
   };
 }
