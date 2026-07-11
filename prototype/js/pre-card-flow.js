@@ -1,9 +1,8 @@
 /* ============================================================
    pre-card-flow.js — 選卡前即興前綴、女主打斷、重複卡預判
    ------------------------------------------------------------
-   流程：
-   場景對話 → 男主場景前綴 → 女主可能打斷 → 顯示手牌
-   重複選卡時，女主會先預判，再讓原本出牌流程繼續。
+   所有前綴、打斷與預判都直接共用遊戲原本的 #dialog，
+   不建立另一套對話框，確保字體、名牌、位置與點擊節奏一致。
    ============================================================ */
 
 const SCENE_PREFIXES = {
@@ -68,12 +67,14 @@ const HARD_INTERRUPTS = [
   "不用營造氣氛了，直接選你要講的。",
 ];
 
+const TYPE_SPEED = 18;
 const cardUseCounts = new Map();
 let lastScenePrefix = "";
-let overlayBusy = false;
+let sequenceBusy = false;
 let handCycle = 0;
 let handledCycle = -1;
 let internalReveal = false;
+let typingTimer = null;
 const bypassButtons = new WeakSet();
 
 function pick(list, avoid = "") {
@@ -101,94 +102,118 @@ function readTolerance() {
   return Number.isFinite(value) ? value : 100;
 }
 
-function ensureStyles() {
-  if (document.getElementById("pre-card-flow-style")) return;
-  const style = document.createElement("style");
-  style.id = "pre-card-flow-style";
-  style.textContent = `
-    .pre-card-flow-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 70;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 0 70px 38px;
-      background: rgba(7, 7, 14, 0.24);
-      pointer-events: auto;
-    }
-    .pre-card-flow-panel {
-      width: min(1080px, 100%);
-      min-height: 132px;
-      padding: 22px 28px 18px;
-      border: 1px solid rgba(255,255,255,.16);
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(19,18,31,.97), rgba(8,8,16,.98));
-      box-shadow: 0 24px 70px rgba(0,0,0,.58);
-      color: #fff;
-    }
-    .pre-card-flow-name {
-      margin-bottom: 10px;
-      color: #ffd34d;
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: .08em;
-    }
-    .pre-card-flow-text {
-      min-height: 48px;
-      font-size: 24px;
-      font-weight: 800;
-      line-height: 1.55;
-    }
-    .pre-card-flow-next {
-      margin-top: 8px;
-      color: rgba(255,255,255,.62);
-      font-size: 13px;
-      text-align: right;
-    }
-    .pre-card-flow-panel.heroine .pre-card-flow-name { color: #ff9fcf; }
-    @media (max-height: 760px) {
-      .pre-card-flow-overlay { padding-bottom: 24px; }
-      .pre-card-flow-panel { min-height: 108px; padding: 16px 22px 13px; }
-      .pre-card-flow-text { min-height: 38px; font-size: 20px; }
-    }
-  `;
-  document.head.appendChild(style);
+function heroineName() {
+  const previousName = document.getElementById("nameplate")?.textContent?.trim();
+  const previousClass = document.getElementById("nameplate")?.className || "";
+  if (previousName && previousClass.includes("speaker-heroine")) return previousName;
+  return document.querySelector("#sprite-heroine img")?.alt || "女主角";
 }
 
-function showSequence(lines, onDone) {
-  if (overlayBusy) return;
-  overlayBusy = true;
-  const overlay = document.createElement("div");
-  overlay.className = "pre-card-flow-overlay";
-  overlay.innerHTML = `
-    <div class="pre-card-flow-panel">
-      <div class="pre-card-flow-name"></div>
-      <div class="pre-card-flow-text"></div>
-      <div class="pre-card-flow-next">點擊繼續 ▼</div>
-    </div>`;
-  document.getElementById("stage")?.appendChild(overlay);
+function setSpeaker(speaker) {
+  const nameplate = document.getElementById("nameplate");
+  const guma = document.getElementById("sprite-guma");
+  const heroine = document.getElementById("sprite-heroine");
+  if (!nameplate) return;
+
+  if (speaker === "heroine") {
+    nameplate.textContent = heroineName();
+    nameplate.className = "nameplate speaker-heroine";
+    guma?.classList.remove("active");
+    guma?.classList.add("dim");
+    heroine?.classList.remove("dim");
+    heroine?.classList.add("active");
+  } else {
+    nameplate.textContent = "Gumayuwei";
+    nameplate.className = "nameplate speaker-guma";
+    heroine?.classList.remove("active");
+    heroine?.classList.add("dim");
+    guma?.classList.remove("dim");
+    guma?.classList.add("active");
+  }
+}
+
+function typeIntoOriginalDialog(text, onFinished) {
+  const textBox = document.getElementById("dialog-text");
+  const hint = document.getElementById("advance-hint");
+  if (!textBox || !hint) {
+    onFinished?.();
+    return () => {};
+  }
+
+  window.clearInterval(typingTimer);
+  textBox.textContent = "";
+  hint.classList.add("hidden");
+  let index = 0;
+  let finished = false;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    window.clearInterval(typingTimer);
+    textBox.textContent = text;
+    hint.classList.remove("hidden");
+    onFinished?.();
+  };
+
+  typingTimer = window.setInterval(() => {
+    index += 1;
+    textBox.textContent = text.slice(0, index);
+    if (index >= text.length) finish();
+  }, TYPE_SPEED);
+
+  return finish;
+}
+
+function showSequence(lines, onDone, { hideHand = false } = {}) {
+  if (sequenceBusy || !lines.length) return;
+  sequenceBusy = true;
+
+  const dialog = document.getElementById("dialog");
+  const handOverlay = document.getElementById("hand-overlay");
+  if (!dialog) {
+    sequenceBusy = false;
+    onDone?.();
+    return;
+  }
+
+  if (hideHand) handOverlay?.classList.add("hidden");
+  dialog.classList.remove("hidden", "narration");
 
   let index = 0;
+  let lineFinished = false;
+  let finishTyping = () => {};
+
   const render = () => {
     const line = lines[index];
-    const panel = overlay.querySelector(".pre-card-flow-panel");
-    panel.classList.toggle("heroine", line.speaker === "heroine");
-    overlay.querySelector(".pre-card-flow-name").textContent = line.speaker === "heroine" ? "女主角" : "Gumayuwei";
-    overlay.querySelector(".pre-card-flow-text").textContent = line.text;
+    lineFinished = false;
+    setSpeaker(line.speaker);
+    finishTyping = typeIntoOriginalDialog(line.text, () => {
+      lineFinished = true;
+    });
   };
-  const next = (event) => {
+
+  const advance = (event) => {
+    event?.preventDefault();
     event?.stopPropagation();
+    event?.stopImmediatePropagation?.();
+
+    if (!lineFinished) {
+      finishTyping();
+      return;
+    }
+
     index += 1;
     if (index < lines.length) {
       render();
       return;
     }
-    overlay.remove();
-    overlayBusy = false;
+
+    dialog.removeEventListener("click", advance, true);
+    sequenceBusy = false;
     onDone?.();
   };
-  overlay.addEventListener("click", next);
+
+  dialog.addEventListener("click", advance, true);
   render();
 }
 
@@ -199,7 +224,7 @@ function interruptionForTolerance(tolerance) {
 }
 
 function runPreSelectionLeadIn(handOverlay) {
-  if (overlayBusy || handledCycle === handCycle) return;
+  if (sequenceBusy || handledCycle === handCycle) return;
   handledCycle = handCycle;
   handOverlay.classList.add("hidden");
 
@@ -266,7 +291,7 @@ function handleCardCapture(event) {
   showSequence(predictionLines(info, previousUses), () => {
     bypassButtons.add(button);
     button.click();
-  });
+  }, { hideHand: true });
 }
 
 function resetRuntime() {
@@ -275,10 +300,11 @@ function resetRuntime() {
   handCycle = 0;
   handledCycle = -1;
   internalReveal = false;
+  sequenceBusy = false;
+  window.clearInterval(typingTimer);
 }
 
 export function installPreCardFlow() {
-  ensureStyles();
   document.addEventListener("click", handleCardCapture, true);
   document.getElementById("btn-start")?.addEventListener("click", resetRuntime, true);
   document.getElementById("btn-restart")?.addEventListener("click", resetRuntime, true);
