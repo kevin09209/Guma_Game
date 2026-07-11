@@ -73,6 +73,7 @@ let lastScenePrefix = "";
 let overlayBusy = false;
 let handCycle = 0;
 let handledCycle = -1;
+let internalReveal = false;
 const bypassButtons = new WeakSet();
 
 function pick(list, avoid = "") {
@@ -210,6 +211,7 @@ function runPreSelectionLeadIn(handOverlay) {
   if (interruption) lines.push({ speaker: "heroine", text: interruption });
 
   showSequence(lines, () => {
+    internalReveal = true;
     handOverlay.classList.remove("hidden");
   });
 }
@@ -272,6 +274,7 @@ function resetRuntime() {
   lastScenePrefix = "";
   handCycle = 0;
   handledCycle = -1;
+  internalReveal = false;
 }
 
 export function installPreCardFlow() {
@@ -285,6 +288,11 @@ export function installPreCardFlow() {
   let wasHidden = handOverlay.classList.contains("hidden");
   const observer = new MutationObserver(() => {
     const hidden = handOverlay.classList.contains("hidden");
+    if (internalReveal && !hidden) {
+      internalReveal = false;
+      wasHidden = false;
+      return;
+    }
     if (wasHidden && !hidden) {
       handCycle += 1;
       queueMicrotask(() => runPreSelectionLeadIn(handOverlay));
