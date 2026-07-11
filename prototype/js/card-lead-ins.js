@@ -1,5 +1,8 @@
 /* ============================================================
    card-lead-ins.js — 依稀有度、場景與使用情境組合即興前綴
+   ------------------------------------------------------------
+   一般出牌的場景前綴已移到選卡前；選卡後只補稀有度氣勢。
+   補救與緊急救援仍保留情境＋場景＋稀有度組合。
    ============================================================ */
 
 let CONFIG = {
@@ -39,10 +42,15 @@ export function buildCardLeadIn({ card, sceneId, context = "normal", previous = 
   const fallback = pick(CONFIG.defaults, previous);
 
   const parts = [];
-  if (context !== "normal" && contextLine) parts.push(contextLine);
-  if (sceneLine) parts.push(sceneLine);
-  if (rarityLine) parts.push(rarityLine);
-  if (!parts.length && fallback) parts.push(fallback);
+  if (context === "normal") {
+    if (rarityLine) parts.push(rarityLine);
+    else if (fallback) parts.push(fallback);
+  } else {
+    if (contextLine) parts.push(contextLine);
+    if (sceneLine) parts.push(sceneLine);
+    if (rarityLine) parts.push(rarityLine);
+    if (!parts.length && fallback) parts.push(fallback);
+  }
 
   return {
     text: parts.join(" "),
