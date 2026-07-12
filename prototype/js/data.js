@@ -3,10 +3,11 @@
    ------------------------------------------------------------
    /data 的 JSON 是「內容」，這個模組是唯一的讀取入口。
 
-   v0.6.0：
+   v0.6.1：
    - 場景選擇題移至 scene_choices.json。
    - 緊急壞結局移至 emergency_endings.json 並併入結局圖鑑。
    - 手寫 card_results 永遠優先，缺漏才由反應人格補齊。
+   - 支援 card_overrides_v061.json，讓單張卡可獨立覆寫內容與劇情。
    ============================================================ */
 
 export const DATA = {
@@ -39,6 +40,23 @@ function mergeSceneCardResults(supplement) {
     if (!extra) return;
     scene.card_results = { ...(scene.card_results || {}), ...extra };
   });
+}
+
+function applyCardOverrides(overrides) {
+  const cardOverrides = overrides?.cards || {};
+  DATA.cards = DATA.cards.map((card) => (cardOverrides[card.id] ? { ...card, ...cardOverrides[card.id] } : card));
+
+  DATA.repeatReactions = {
+    ...DATA.repeatReactions,
+    ...(overrides?.repeat_reactions || {}),
+  };
+
+  DATA.reactionProfiles = {
+    ...DATA.reactionProfiles,
+    ...(overrides?.reaction_profiles || {}),
+  };
+
+  mergeSceneCardResults(overrides);
 }
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -188,7 +206,7 @@ function fillMissingCardResults() {
 }
 
 export async function loadData() {
-  const [cards, heroines, scenes, endings, phase2, confession, profiles, choices, emergencyEndings] = await Promise.all([
+  const [cards, heroines, scenes, endings, phase2, confession, profiles, choices, emergencyEndings, cardOverrides] = await Promise.all([
     fetch("../data/cards.json").then((r) => r.json()),
     fetch("../data/heroines.json").then((r) => r.json()),
     fetch("../data/scenes.json").then((r) => r.json()),
@@ -198,6 +216,7 @@ export async function loadData() {
     fetchOptionalJson("../data/card_reaction_profiles.json", {}),
     fetchOptionalJson("../data/scene_choices.json", {}),
     fetchOptionalJson("../data/emergency_endings.json", {}),
+    fetchOptionalJson("../data/card_overrides_v061.json", {}),
   ]);
   DATA.cards = cards.cards;
   DATA.heroines = heroines.heroines;
@@ -209,6 +228,7 @@ export async function loadData() {
   DATA.endings = [...(emergencyEndings.endings || []), ...(endings.endings || [])];
   mergeSceneCardResults(phase2);
   mergeSceneCardResults(confession);
+  applyCardOverrides(cardOverrides);
   fillMissingCardResults();
 }
 
