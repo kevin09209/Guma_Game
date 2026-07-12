@@ -1,8 +1,18 @@
 /* ============================================================
-   main.js — v0.6.0 單局流程協調器
+   main.js — 遊戲流程引擎（單局狀態機）
    ------------------------------------------------------------
-   內容在 /data，系統分別由 tolerance / choices / swap / emergency 管理。
-   main.js 只負責串接：劇情 → 選擇 → 出牌 → 救援 → 汰換 → 結局。
+   模組分工（詳見 docs/architecture-guidelines.md）：
+   - js/config.js  常數與平衡參數
+   - js/storage.js 玩家持久資料（唯一碰 localStorage 的地方）
+   - js/data.js    /data JSON 的載入與查詢（載入後唯讀）
+   - js/ui.js      共用 UI 工具（esc、卡片按鈕、舞台縮放）
+   - js/gacha.js   抽卡經濟、收藏、結局圖鑑（跨局系統）
+   - js/audio.js   BGM 與音效（Web Audio 程序生成）
+   - main.js       單局流程：劇本播放 → 出牌 → 補救 → 汰換 → 跳轉 → 結局
+
+   單局流程的 mode 狀態機：
+   start → (run-draw) → story ⇄ hand → cutin → story → [rescue] → [swap] → story…
+   → ending → start
    ============================================================ */
 
 import {
@@ -10,45 +20,18 @@ import {
   TUTORIAL_HAND, HAND_SIZE, TYPE_SPEED, ENDING_BGM,
 } from "./js/config.js";
 import * as store from "./js/storage.js";
-import {
-  DATA, loadData, getCard, getHeroine, getScene, getEnding,
-  assetPath, preloadBackgrounds,
-} from "./js/data.js";
+import { DATA, loadData, getCard, getHeroine, getScene, assetPath, preloadBackgrounds } from "./js/data.js";
 import { $, esc, fitStage, buildCardButton, tryLoadCardArt } from "./js/ui.js";
 import * as gacha from "./js/gacha.js";
 import * as audio from "./js/audio.js";
-import {
-  TOLERANCE_MAX, applyTolerance, renderTolerance, clamp,
-} from "./js/tolerance.js";
-import {
-  openSceneChoice as showSceneChoice, applyChoiceFlags, choiceScript, getMemoryLines,
-} from "./js/choices.js";
-import {
-  drawReplacementCard, renderSwapHand, renderReplacementFlip,
-} from "./js/swap.js";
-import {
-  DICE_FACES, rollDice, scaleEffects, rescuePower,
-  eligibleEmergencyCards, findEmergencyEnding,
-} from "./js/emergency.js";
-import {
-  loadCardLeadIns, buildCardLeadIn,
-} from "./js/card-lead-ins.js";
 
-const query = new URLSearchParams(location.search);
-const forcedDice = query.get("dice");
-const debugTolerance = Number(query.get("tolerance"));
-const debugScene = query.get("scene");
-
+// ------------------------------------------------------------
+// 單局狀態（跨局的收藏/票券在 storage.js）
+// ------------------------------------------------------------
 const state = {
-  stats: freshStats(),
-  tolerance: TOLERANCE_MAX,
-  emergencyPending: false,
-  emergencyCardId: null,
-  forcedEnding: null,
+  stats: { favorability: 0, awkwardness: 0, comedy: 0, sincerity: 0, confidence: 0, social_death: 0, appetite: 0, battle: 0 },
   hand: [],
   cardUse: {},
-  flags: new Set(),
-  choiceHistory: [],
   sceneId: null,
   stopCount: 0,
   script: [],
@@ -56,53 +39,22 @@ const state = {
   mode: "start",
   typing: false,
   typeTimer: null,
-  skipTyping: null,
-  afterScript: null,
-  lastDialogue: null,
-  lastUsedCard: null,
-  lastCardLeadIn: "",
   pendingNext: null,
   pendingDanger: null,
-  pendingDiscard: null,
+  lastUsedCard: null,
+  afterScript: null,
+  lastDialogue: null,
+  runDrawMode: null,   // "start"（開局抽）或 "swap"（汰換抽）
   runDrawDone: false,
   runDrawCardId: null,
+  pendingDiscard: null,
 };
-
-function freshStats() {
-  return {
-    favorability: 0,
-    awkwardness: 0,
-    comedy: 0,
-    sincerity: 0,
-    confidence: 0,
-    social_death: 0,
-    appetite: 0,
-    battle: 0,
-  };
-}
 
 const currentScene = () => getScene(state.sceneId);
 
-function createCardLeadIn(card, context = "normal", emotion = "thinking") {
-  const result = buildCardLeadIn({
-    card,
-    sceneId: state.sceneId,
-    context,
-    previous: state.lastCardLeadIn,
-  });
-  state.lastCardLeadIn = result.signature;
-  return {
-    type: "dialogue",
-    speaker: "guma",
-    emotion,
-    text: result.text,
-  };
-}
-
-function prependCardLeadIn(lines, card, context = "normal", emotion = "thinking") {
-  return [createCardLeadIn(card, context, emotion), ...(Array.isArray(lines) ? lines : [])];
-}
-
+// ------------------------------------------------------------
+// 發牌：首局固定教學手牌，之後從收藏隨機抽（?hand= 供測試指定）
+// ------------------------------------------------------------
 function getPlayablePool() {
   let owned = store.getOwnedIds().filter((id) => getCard(id));
   if (owned.length < HAND_SIZE) {
@@ -111,65 +63,48 @@ function getPlayablePool() {
   }
   return owned;
 }
-
-function drawCardFromCollection() {
-  const owned = getPlayablePool();
-  let pool = owned.filter((id) => !state.hand.includes(id));
-  if (!pool.length) pool = owned;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
 function dealHand() {
-  const urlHand = query.get("hand");
-  state.hand = [];
+  const urlHand = new URLSearchParams(location.search).get("hand");
   if (urlHand) {
     state.hand = urlHand.split(",").filter((id) => getCard(id)).slice(0, HAND_SIZE);
+    while (state.hand.length < HAND_SIZE) state.hand.push(drawCardFromCollection());
   } else if (!store.hasPlayed()) {
     state.hand = [...TUTORIAL_HAND];
-    store.setOwnedIds(Array.from(new Set([...store.getOwnedIds(), ...TUTORIAL_HAND])));
+    store.setOwnedIds([...store.getOwnedIds(), ...TUTORIAL_HAND]);
+  } else {
+    state.hand = [];
+    while (state.hand.length < HAND_SIZE) state.hand.push(drawCardFromCollection());
   }
-  while (state.hand.length < HAND_SIZE) state.hand.push(drawCardFromCollection());
+  // 開局抽到的卡保證進手牌
   if (state.runDrawCardId && !state.hand.includes(state.runDrawCardId)) {
     state.hand[state.hand.length - 1] = state.runDrawCardId;
   }
 }
-
-function mergeEffects(...lists) {
-  const merged = {};
-  lists.forEach((effects) => {
-    Object.entries(effects || {}).forEach(([key, value]) => {
-      merged[key] = (merged[key] || 0) + (Number(value) || 0);
-    });
-  });
-  return merged;
+function drawCardFromCollection() {
+  const owned = getPlayablePool();
+  let pool = owned.filter((id) => !state.hand.includes(id));
+  if (pool.length === 0) pool = owned;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// ------------------------------------------------------------
+// 數值：標籤加成與套用
+// ------------------------------------------------------------
 function tagModifiers(card, scene, heroine) {
   const bonus = { favorability: 0, awkwardness: 0, social_death: 0 };
   (card.tags || []).forEach((tag) => {
     if ((scene.preferred_tags || []).includes(tag)) bonus.favorability += 1;
-    if ((scene.danger_tags || []).includes(tag)) {
-      bonus.social_death += 2;
-      bonus.awkwardness += 2;
-    }
+    if ((scene.danger_tags || []).includes(tag)) { bonus.social_death += 2; bonus.awkwardness += 2; }
     if ((heroine.likes || []).includes(tag)) bonus.favorability += 1;
-    if ((heroine.dislikes || []).includes(tag)) {
-      bonus.favorability -= 2;
-      bonus.awkwardness += 2;
-    }
+    if ((heroine.dislikes || []).includes(tag)) { bonus.favorability -= 2; bonus.awkwardness += 2; }
   });
   return bonus;
 }
-
-function applyEffects(effects = {}) {
-  Object.entries(effects).forEach(([key, value]) => {
-    if (key in state.stats && value) state.stats[key] = Math.max(0, state.stats[key] + value);
+function applyEffects(effects) {
+  Object.entries(effects || {}).forEach(([key, delta]) => {
+    if (key in state.stats && delta !== 0) state.stats[key] = Math.max(0, state.stats[key] + delta);
   });
-  const toleranceResult = applyTolerance(state.tolerance, effects);
-  state.tolerance = toleranceResult.value;
-  if (toleranceResult.emergency) state.emergencyPending = true;
 }
-
 function renderHud(changedKeys = []) {
   const box = $("hud-stats");
   box.innerHTML = "";
@@ -180,9 +115,11 @@ function renderHud(changedKeys = []) {
     chip.innerHTML = `${STAT_LABELS[key]} <b>${state.stats[key]}</b>`;
     box.appendChild(chip);
   });
-  renderTolerance(state.tolerance, $);
 }
 
+// ------------------------------------------------------------
+// 立繪與情緒
+// ------------------------------------------------------------
 function highlightSpeaker(speaker) {
   const guma = $("sprite-guma");
   const heroine = $("sprite-heroine");
@@ -191,59 +128,52 @@ function highlightSpeaker(speaker) {
   heroine.classList.toggle("active", speaker === "heroine");
   heroine.classList.toggle("dim", speaker !== "heroine");
 }
-
 function updateGumaEmotionText(emotion) {
-  const element = $("guma-emotion-text");
-  if (!element) return;
-  element.textContent = `Gumayuwei 表情：${EMOTION_TEXT[emotion] || emotion || "待機"}`;
-  element.classList.remove("hidden");
+  const el = $("guma-emotion-text");
+  if (!el) return;
+  el.textContent = `Gumayuwei 表情：${EMOTION_TEXT[emotion] || emotion || "待機"}`;
+  el.classList.remove("hidden");
 }
-
-function hideGumaEmotionText() {
-  $("guma-emotion-text")?.classList.add("hidden");
-}
-
+function hideGumaEmotionText() { $("guma-emotion-text")?.classList.add("hidden"); }
 function showEmotion(speaker, emotion) {
-  document.querySelectorAll(".emotion-badge").forEach((badge) => badge.classList.add("hidden"));
+  document.querySelectorAll(".emotion-badge").forEach((b) => b.classList.add("hidden"));
   if (speaker === "guma") updateGumaEmotionText(emotion || "none");
   const symbol = EMOTION_SYMBOLS[emotion] || "";
   if (!symbol) return;
   const sprite = speaker === "guma" ? $("sprite-guma") : speaker === "heroine" ? $("sprite-heroine") : null;
-  const badge = sprite?.querySelector(".emotion-badge");
-  if (!badge) return;
+  if (!sprite) return;
+  const badge = sprite.querySelector(".emotion-badge");
   badge.textContent = symbol;
   badge.classList.remove("hidden");
+  badge.style.animation = "none";
+  void badge.offsetWidth; // 重新觸發 pop 動畫
+  badge.style.animation = "";
 }
-
 function speakerName(speaker) {
   if (speaker === "guma") return "Gumayuwei";
-  if (speaker === "heroine") return getHeroine(currentScene()?.heroine)?.name || "女主角";
+  if (speaker === "heroine") return getHeroine(currentScene().heroine).name;
   if (speaker === "boss") return "主管";
-  return speaker || "";
+  return speaker;
 }
 
+// ------------------------------------------------------------
+// 劇本播放（打字機）
+// ------------------------------------------------------------
 function typeText(text) {
   const box = $("dialog-text");
   box.textContent = "";
   $("advance-hint").classList.add("hidden");
   state.typing = true;
-  let index = 0;
-
-  const finish = () => {
+  let i = 0;
+  state.typeTimer = setInterval(() => { box.textContent = text.slice(0, ++i); if (i >= text.length) finishTyping(); }, TYPE_SPEED);
+  function finishTyping() {
     clearInterval(state.typeTimer);
     box.textContent = text;
     state.typing = false;
     $("advance-hint").classList.remove("hidden");
-  };
-
-  state.typeTimer = setInterval(() => {
-    index += 1;
-    box.textContent = text.slice(0, index);
-    if (index >= text.length) finish();
-  }, TYPE_SPEED);
-  state.skipTyping = finish;
+  }
+  state.skipTyping = finishTyping;
 }
-
 function playScript(lines, onDone) {
   state.script = Array.isArray(lines) ? lines : [];
   state.lineIndex = -1;
@@ -251,338 +181,156 @@ function playScript(lines, onDone) {
   state.mode = "story";
   advance();
 }
-
 function advance() {
-  if (state.typing) {
-    state.skipTyping?.();
-    return;
-  }
+  if (state.typing) { state.skipTyping(); return; }
   state.lineIndex += 1;
   const line = state.script[state.lineIndex];
-  if (!line) {
-    const callback = state.afterScript;
-    state.afterScript = null;
-    callback?.();
-    return;
-  }
+  if (!line) { const next = state.afterScript; state.afterScript = null; if (next) next(); return; }
   renderLine(line);
 }
-
 function renderLine(line) {
   const dialog = $("dialog");
+  const nameplate = $("nameplate");
   dialog.classList.remove("hidden");
   if (line.type === "narration") {
     dialog.classList.add("narration");
     highlightSpeaker(null);
+    showEmotion(null, "none");
     state.lastDialogue = { speaker: "旁白", text: line.text };
   } else {
     dialog.classList.remove("narration");
     const name = speakerName(line.speaker);
-    $("nameplate").textContent = name;
-    $("nameplate").className = `nameplate speaker-${line.speaker}`;
+    nameplate.textContent = name;
+    nameplate.className = `nameplate speaker-${line.speaker}`;
     highlightSpeaker(line.speaker);
     showEmotion(line.speaker, line.emotion || "none");
     state.lastDialogue = { speaker: name, text: line.text };
   }
   typeText(line.text || "");
 }
-
-function templateScript(lines, variables) {
+// 劇本占位字（{card_name} 等）替換
+function templateScript(lines, vars) {
   return (lines || []).map((line) => ({
     ...line,
-    text: String(line.text || "").replace(/\{(\w+)\}/g, (_, key) => variables[key] ?? `{${key}}`),
+    text: String(line.text || "").replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`),
   }));
 }
 
+// ------------------------------------------------------------
+// 場景流程
+// ------------------------------------------------------------
 function loadScene(sceneId) {
   state.sceneId = sceneId;
   state.stopCount += 1;
-  const scene = currentScene();
-  if (!scene) {
-    showEnding();
-    return;
-  }
+  const scene = getScene(sceneId);
+  if (!scene) { showEnding(); return; } // 資料指到不存在的場景：直接收尾，不讓玩家卡死
   $("bg").src = assetPath(scene.background);
   $("topbar").classList.remove("hidden");
   $("hud-location").textContent = `第 ${state.stopCount} 站・${scene.title}｜${scene.location}`;
   renderHud();
   audio.setMood(scene.bgm || "office");
-
-  const memory = getMemoryLines(DATA.sceneChoices[sceneId], state.flags);
-  playScript([...(scene.intro_script || []), ...memory], openSceneChoice);
+  playScript(scene.intro_script, openHand);
 }
-
-function openSceneChoice() {
-  state.mode = "sceneChoice";
-  const opened = showSceneChoice({
-    choiceData: DATA.sceneChoices[state.sceneId],
-    flags: state.flags,
-    onChoose: chooseSceneOption,
-  });
-  if (!opened) openHand();
-}
-
-function chooseSceneOption(option) {
-  applyChoiceFlags(state, option);
-  applyEffects(option.effects || {});
-  renderHud(Object.keys(option.effects || {}));
-  playScript(choiceScript(option), () => {
-    if (state.emergencyPending) maybeEmergencyMission();
-    else openHand();
-  });
-}
-
 function openHand() {
   state.mode = "hand";
   const context = state.lastDialogue || { speaker: "提示", text: "請根據目前情境選擇一張卡。" };
-  $("choice-context").innerHTML = `
-    <div><span class="context-speaker">${esc(context.speaker)}</span>${esc(context.text)}</div>
-    <div class="context-note">選錯不一定會輸，但會扣女主忍受條。</div>`;
-  const handBox = $("hand");
-  handBox.innerHTML = "";
-  state.hand.forEach((cardId) => handBox.appendChild(buildCardButton(cardId, playCard)));
+  $("choice-context").innerHTML =
+    `<div><span class="context-speaker">${esc(context.speaker)}</span>${esc(context.text)}</div>` +
+    `<div class="context-note">選錯不一定會輸，但可能會社死。</div>`;
+  const hand = $("hand");
+  hand.innerHTML = "";
+  state.hand.forEach((cardId) => hand.appendChild(buildCardButton(cardId, playCard)));
   $("hand-overlay").classList.remove("hidden");
 }
 
+// ------------------------------------------------------------
+// 出牌主流程
+// ------------------------------------------------------------
+// 統一整理一次出牌的結果：專屬結果優先，否則 fallback＋卡片基礎效果
 function resolveResult(scene, cardId, card) {
-  const bespoke = scene.card_results?.[cardId];
+  const bespoke = (scene.card_results || {})[cardId];
   const fallback = scene.fallback || {};
   const result = bespoke || fallback;
   return {
-    script: Array.isArray(result.script) ? result.script : [
-      { type: "narration", text: `Gumayuwei 使出了「${card.name}」，現場陷入一陣難以解釋的沉默。` },
-    ],
-    effects: bespoke ? (result.effects || {}) : (card.effects || {}),
+    script: Array.isArray(result.script) ? result.script : [{ type: "narration", text: `Gumayuwei 使出了「${card.name}」，現場陷入一陣難以解釋的沉默。` }],
+    effects: bespoke ? (bespoke.effects || {}) : (card.effects || {}),
     next: result.next || "ending",
-    rescue: bespoke && bespoke.danger ? result.rescue : null,
+    rescue: bespoke && bespoke.danger ? bespoke.rescue : null,
   };
 }
-
 function playCard(cardId) {
   $("hand-overlay").classList.add("hidden");
   const scene = currentScene();
   const card = getCard(cardId);
   const heroine = getHeroine(scene.heroine);
   const result = resolveResult(scene, cardId, card);
-  const bonus = tagModifiers(card, scene, heroine);
-  const combined = mergeEffects(result.effects, bonus);
-
   state.cardUse[cardId] = (state.cardUse[cardId] || 0) + 1;
   state.lastUsedCard = cardId;
+  updateGumaEmotionText(`準備使用「${card.name}」`);
+  const bonus = tagModifiers(card, scene, heroine);
+  const changed = [];
+  applyEffects(result.effects);
+  applyEffects(bonus);
+  Object.keys(result.effects || {}).forEach((k) => result.effects[k] && changed.push(k));
+  Object.keys(bonus).forEach((k) => bonus[k] && changed.push(k));
+  renderHud(changed);
   state.pendingNext = result.next;
   state.pendingDanger = result.rescue;
-
-  applyEffects(combined);
-  renderHud(Object.keys(combined));
   showCutin(card, result.effects, bonus, () => {
-    const resolvedScript = templateScript(result.script, { card_name: card.name });
-    playScript(prependCardLeadIn(resolvedScript, card, "normal", "thinking"), () => afterResult(cardId));
+    playScript(templateScript(result.script, { card_name: card.name }), () => afterResult(cardId));
   });
 }
-
 function afterResult(cardId) {
-  const reaction = state.cardUse[cardId] === 3
-    ? (DATA.repeatReactions[cardId] || DATA.repeatReactions.default)
-    : null;
-  if (reaction) {
-    applyEffects(reaction.effects || {});
-    renderHud(Object.keys(reaction.effects || {}));
-    playScript([
-      { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: reaction.line },
-    ], maybeEmergencyMission);
-    return;
+  // 同一張卡本局用到第 3 次 → 女主額外吐槽
+  if (state.cardUse[cardId] === 3) {
+    const reaction = DATA.repeatReactions[cardId] || DATA.repeatReactions.default;
+    if (reaction) {
+      applyEffects(reaction.effects);
+      renderHud(Object.keys(reaction.effects || {}));
+      playScript([{ type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: reaction.line }], maybeRescue);
+      return;
+    }
   }
-  maybeEmergencyMission();
+  maybeRescue();
 }
-
-function maybeEmergencyMission() {
-  if (state.emergencyPending) {
-    playScript([
-      { type: "dialogue", speaker: "guma", emotion: "shout", text: "等等！！！" },
-    ], openEmergencyMission);
-    return;
-  }
-  maybeNormalRescue();
-}
-
-function maybeNormalRescue() {
+function maybeRescue() {
   const rescue = state.pendingDanger;
   state.pendingDanger = null;
-  if (!rescue) {
-    openSwap();
-    return;
-  }
-  const candidates = state.hand.filter((id) =>
-    id !== state.lastUsedCard && (getCard(id)?.tags || []).includes("補救")
-  );
-  if (!candidates.length) {
-    openSwap();
-    return;
-  }
-
+  if (!rescue) { openSwap(); return; }
+  const candidates = state.hand.filter((id) => id !== state.lastUsedCard && (getCard(id).tags || []).includes("補救"));
+  if (candidates.length === 0) { openSwap(); return; } // 沒補救卡只能硬吃
   state.mode = "rescue";
   $("rescue-prompt").textContent = rescue.prompt || "場面即將死亡，是否使用補救卡？";
   const box = $("rescue-cards");
   box.innerHTML = "";
-  candidates.forEach((id) => {
-    box.appendChild(buildCardButton(id, (rescueId) => {
-      $("rescue-overlay").classList.add("hidden");
-      const rescueCard = getCard(rescueId);
-      state.cardUse[rescueId] = (state.cardUse[rescueId] || 0) + 1;
-      applyEffects(rescue.effects || {});
-      renderHud(Object.keys(rescue.effects || {}));
-      const resolvedScript = templateScript(rescue.script, { rescue_card_name: rescueCard.name });
-      playScript(prependCardLeadIn(resolvedScript, rescueCard, "rescue", "awkward"), openSwap);
-    }));
-  });
+  candidates.forEach((id) => box.appendChild(buildCardButton(id, (rescueId) => {
+    $("rescue-overlay").classList.add("hidden");
+    const rescueCard = getCard(rescueId);
+    state.cardUse[rescueId] = (state.cardUse[rescueId] || 0) + 1; // 補救也算使用
+    applyEffects(rescue.effects);
+    renderHud(Object.keys(rescue.effects || {}));
+    playScript(templateScript(rescue.script, { rescue_card_name: rescueCard.name }), openSwap);
+  })));
   $("rescue-overlay").classList.remove("hidden");
 }
 
-function openEmergencyMission() {
-  state.mode = "emergency";
-  state.emergencyCardId = null;
-  state.pendingDanger = null;
-  $("dialog").classList.add("hidden");
-  $("emergency-selected").classList.add("hidden");
-  $("emergency-roll-result").classList.add("hidden");
-  $("btn-emergency-roll").disabled = true;
-  $("btn-emergency-roll").classList.add("disabled");
-
-  const candidates = eligibleEmergencyCards(state.hand, getCard, state.lastUsedCard);
-  const box = $("emergency-cards");
-  box.innerHTML = "";
-  if (!candidates.length) {
-    $("emergency-prompt").textContent = "女主忍受條已歸零，但你手上沒有 SSR 以上卡可以救場。";
-    $("btn-emergency-give-up").textContent = "沒有救援卡，進入壞結局";
-  } else {
-    $("emergency-prompt").textContent = "局勢已經失控。選擇 1 張 SSR / UR 卡，再擲骰決定命運。";
-    $("btn-emergency-give-up").textContent = "放棄救援，接受壞結局";
-    candidates.forEach((id) => box.appendChild(buildCardButton(id, selectEmergencyCard)));
-  }
-  $("emergency-overlay").classList.remove("hidden");
-}
-
-function selectEmergencyCard(cardId) {
-  state.emergencyCardId = cardId;
-  const card = getCard(cardId);
-  $("emergency-selected").textContent = `已選擇救援卡：${card.rarity}・${card.name}`;
-  $("emergency-selected").classList.remove("hidden");
-  $("btn-emergency-roll").disabled = false;
-  $("btn-emergency-roll").classList.remove("disabled");
-}
-
-function emergencySceneEffects(cardId) {
-  const scene = currentScene();
-  const card = getCard(cardId);
-  const result = resolveResult(scene, cardId, card);
-  return mergeEffects(result.effects, tagModifiers(card, scene, getHeroine(scene.heroine)));
-}
-
-function rollEmergencyDice() {
-  if (!state.emergencyCardId) return;
-  const roll = rollDice(forcedDice);
-  const face = DICE_FACES[roll];
-  const card = getCard(state.emergencyCardId);
-  $("btn-emergency-roll").disabled = true;
-  $("btn-emergency-roll").classList.add("disabled");
-
-  if (face.type === "fail") {
-    $("emergency-roll-result").textContent = `擲出 ${roll} ${face.label}，救援失敗。`;
-    $("emergency-roll-result").className = "emergency-roll-result fail";
-    $("emergency-roll-result").classList.remove("hidden");
-    window.setTimeout(() => emergencyFail(face.key), 600);
-    return;
-  }
-
-  const effects = scaleEffects(emergencySceneEffects(card.id), face.multiplier);
-  const power = rescuePower(effects);
-  state.cardUse[card.id] = (state.cardUse[card.id] || 0) + 1;
-  applyEffects(effects);
-  renderHud(Object.keys(effects));
-  $("emergency-roll-result").textContent = `擲出 ${roll} 點：${card.name} ×${face.multiplier}，救援力 ${power}。`;
-  $("emergency-roll-result").className = "emergency-roll-result success";
-  $("emergency-roll-result").classList.remove("hidden");
-  window.setTimeout(() => emergencySuccess(card, face, power), 600);
-}
-
-function emergencySuccess(card, face, power) {
-  state.tolerance = clamp(Math.max(12, power), 12, 70);
-  state.emergencyPending = false;
-  state.emergencyCardId = null;
-  $("emergency-overlay").classList.add("hidden");
-  renderHud();
-  playScript([
-    createCardLeadIn(card, "emergency", "shout"),
-    { type: "narration", text: `緊急救援成功！${card.name} 被放大到 ×${face.multiplier}，硬是把局勢拉了回來。` },
-    { type: "dialogue", speaker: "heroine", emotion: "tsukkomi", text: "你剛剛那聲『等等』很吵，但這次至少真的有救到。" },
-  ], openSwap);
-}
-
-function emergencyFail(reason) {
-  state.forcedEnding = findEmergencyEnding(DATA.endings, reason || "no_card") || getEnding("ending_emergency_no_card");
-  state.emergencyPending = false;
-  state.emergencyCardId = null;
-  $("emergency-overlay").classList.add("hidden");
-  showEnding();
-}
-
+// ------------------------------------------------------------
+// 手牌汰換（淘汰 1 張 → 抽卡補 1 張）
+// ------------------------------------------------------------
 function openSwap() {
-  if (state.pendingNext === "ending") {
-    goNext();
-    return;
-  }
+  if (state.pendingNext === "ending") { goNext(); return; } // 下一站是結局，汰換沒意義
   state.mode = "swap";
-  state.pendingDiscard = null;
-  $("swap-hint").textContent = "選擇 1 張想汰換的手牌，可反覆改選；確認後會翻出一張新牌。";
   $("swap-result").classList.add("hidden");
-  $("btn-confirm-swap").disabled = true;
-  $("btn-confirm-swap").classList.add("disabled");
-  refreshSwapHand();
+  const box = $("swap-hand");
+  box.innerHTML = "";
+  state.hand.forEach((id) => box.appendChild(buildCardButton(id, (discardId) => {
+    state.pendingDiscard = discardId;
+    state.hand = state.hand.filter((h) => h !== discardId);
+    $("swap-overlay").classList.add("hidden");
+    openRunDraw("swap");
+  })));
   $("swap-overlay").classList.remove("hidden");
 }
-
-function refreshSwapHand() {
-  renderSwapHand({
-    hand: state.hand,
-    getCard,
-    selectedId: state.pendingDiscard,
-    onSelect: selectSwapCard,
-  });
-}
-
-function selectSwapCard(cardId) {
-  state.pendingDiscard = cardId;
-  $("swap-hint").textContent = `目前選擇汰換「${getCard(cardId).name}」。可以再點其他手牌改選。`;
-  $("swap-result").textContent = "按下方「確認汰換」後才會真正換牌。";
-  $("swap-result").classList.remove("hidden");
-  $("btn-confirm-swap").disabled = false;
-  $("btn-confirm-swap").classList.remove("disabled");
-  refreshSwapHand();
-}
-
-function confirmSwap() {
-  if (!state.pendingDiscard) return;
-  const discardedId = state.pendingDiscard;
-  state.hand = state.hand.filter((id) => id !== discardedId);
-  const replacementId = drawReplacementCard({
-    cards: DATA.cards,
-    ownedIds: getPlayablePool(),
-    currentHand: state.hand,
-    discardedId,
-  });
-  if (!store.getOwnedIds().includes(replacementId)) {
-    store.setOwnedIds([...store.getOwnedIds(), replacementId]);
-  }
-  state.hand.push(replacementId);
-  state.pendingDiscard = null;
-  $("swap-hand").innerHTML = "";
-  $("swap-hint").textContent = "翻面補牌中……";
-  $("btn-confirm-swap").disabled = true;
-  $("btn-confirm-swap").classList.add("disabled");
-  renderReplacementFlip(getCard(replacementId));
-  window.setTimeout(goNext, 950);
-}
-
 function goNext() {
   $("swap-overlay").classList.add("hidden");
   const next = state.pendingNext;
@@ -591,21 +339,22 @@ function goNext() {
   else loadScene(next || DATA.start);
 }
 
+// ------------------------------------------------------------
+// 結局
+// ------------------------------------------------------------
 function decideEnding() {
-  if (state.forcedEnding) return state.forcedEnding;
-  const meets = (rules, values) => Object.entries(rules || {}).every(([key, rule]) => {
+  const meets = (rules, values) => Object.entries(rules).every(([key, rule]) => {
     const value = values[key] || 0;
     if (rule.min !== undefined && value < rule.min) return false;
     if (rule.max !== undefined && value > rule.max) return false;
     return true;
   });
   for (const ending of DATA.endings) {
-    if (ending.forced_only) continue;
-    if (meets(ending.conditions?.stats, state.stats) && meets(ending.conditions?.cards, state.cardUse)) return ending;
+    const conditions = ending.conditions || {};
+    if (meets(conditions.stats || {}, state.stats) && meets(conditions.cards || {}, state.cardUse)) return ending;
   }
-  return DATA.endings.filter((ending) => !ending.forced_only).at(-1);
+  return DATA.endings[DATA.endings.length - 1];
 }
-
 function showEnding() {
   const ending = decideEnding();
   state.mode = "ending";
@@ -619,7 +368,6 @@ function showEnding() {
   $("ending-title").className = `ending-title ${ending.mood}`;
   $("ending-text").textContent = ending.text;
   $("ending-reward").textContent = `本輪獎勵：抽卡券 +${reward}${isNewEnding ? "（新結局加成）" : ""}`;
-
   const statsBox = $("ending-stats");
   statsBox.innerHTML = "";
   Object.keys(state.stats).forEach((key) => {
@@ -629,16 +377,15 @@ function showEnding() {
     chip.textContent = `${STAT_LABELS[key]} ${state.stats[key]}`;
     statsBox.appendChild(chip);
   });
-  const toleranceChip = document.createElement("span");
-  toleranceChip.className = "effect-chip down";
-  toleranceChip.textContent = `忍受 ${state.tolerance}%`;
-  statsBox.appendChild(toleranceChip);
-
-  ["dialog", "topbar", "emergency-overlay", "swap-overlay", "scene-choice-overlay"].forEach((id) => $(id).classList.add("hidden"));
+  $("dialog").classList.add("hidden");
+  $("topbar").classList.add("hidden");
   hideGumaEmotionText();
   $("screen-ending").classList.remove("hidden");
 }
 
+// ------------------------------------------------------------
+// 特寫演出（cut-in）
+// ------------------------------------------------------------
 function showCutin(card, effects, bonus, onDismiss) {
   const cardBox = $("cutin-card");
   cardBox.innerHTML = `<span class="placeholder-line">「${esc(card.line)}」</span>`;
@@ -647,46 +394,51 @@ function showCutin(card, effects, bonus, onDismiss) {
   $("cutin-line").textContent = `「${card.line}」`;
   const effectsBox = $("cutin-effects");
   effectsBox.innerHTML = "";
-
-  const addChip = (key, value, bonusChip) => {
-    if (!value) return;
+  const addChip = (key, delta, isBonus) => {
+    if (!delta) return;
     const chip = document.createElement("span");
-    const positive = DANGER_STATS.includes(key) ? value < 0 : value > 0;
-    chip.className = `effect-chip ${positive ? "up" : "down"}${bonusChip ? " bonus" : ""}`;
-    chip.textContent = `${bonusChip ? "加成 " : ""}${STAT_LABELS[key]} ${value > 0 ? "+" : ""}${value}`;
+    const isDanger = DANGER_STATS.includes(key);
+    const isGood = isDanger ? delta < 0 : delta > 0;
+    chip.className = `effect-chip ${isGood ? "up" : "down"}${isBonus ? " bonus" : ""}`;
+    chip.textContent = `${isBonus ? "加成 " : ""}${STAT_LABELS[key]} ${delta > 0 ? "+" : ""}${delta}`;
     effectsBox.appendChild(chip);
   };
-  Object.entries(effects || {}).forEach(([key, value]) => addChip(key, value, false));
-  Object.entries(bonus || {}).forEach(([key, value]) => addChip(key, value, true));
-
+  Object.entries(effects || {}).forEach(([k, v]) => addChip(k, v, false));
+  Object.entries(bonus || {}).forEach(([k, v]) => addChip(k, v, true));
   state.mode = "cutin";
   audio.playSting();
   $("cutin").classList.remove("hidden");
   let dismissed = false;
+  let autoTimer = null;
   const dismiss = () => {
-    if (dismissed) return;
+    if (dismissed) return; // 防止點擊與自動計時重複觸發
     dismissed = true;
+    clearTimeout(autoTimer);
     $("cutin").onclick = null;
     $("cutin").classList.add("hidden");
-    onDismiss();
+    try { onDismiss(); } catch (err) { console.error("cutin dismiss failed", err); openSwap(); }
   };
-  const timer = window.setTimeout(dismiss, 3500);
-  $("cutin").onclick = (event) => {
-    event.stopPropagation();
-    clearTimeout(timer);
-    dismiss();
-  };
+  autoTimer = setTimeout(dismiss, 4500);
+  $("cutin").onclick = (e) => { e.stopPropagation(); dismiss(); };
 }
 
-function openRunDraw() {
+// ------------------------------------------------------------
+// 開局抽卡（run draw）：開始前抽 1 張／汰換後抽 1 張
+// ------------------------------------------------------------
+function openRunDraw(mode) {
+  state.runDrawMode = mode;
   state.runDrawDone = false;
   $("run-draw-result").innerHTML = "";
   $("btn-run-draw").textContent = "抽 1 張";
-  $("run-draw-title").textContent = "開始前抽一張卡";
-  $("run-draw-desc").textContent = "本輪開始前先抽 1 張，卡片會加入收藏，並有機會進入本輪手牌。";
+  if (mode === "start") {
+    $("run-draw-title").textContent = "開始前抽一張卡";
+    $("run-draw-desc").textContent = "本輪開始前先抽 1 張，卡片會加入收藏，並有機會進入本輪手牌。";
+  } else {
+    $("run-draw-title").textContent = "手牌汰換抽卡";
+    $("run-draw-desc").textContent = `已淘汰「${getCard(state.pendingDiscard)?.name || "一張卡"}」，現在抽 1 張新卡補進手牌。`;
+  }
   $("screen-run-draw").classList.remove("hidden");
 }
-
 function resolveRunDraw() {
   if (!state.runDrawDone) {
     const result = gacha.drawOneGachaCard();
@@ -695,86 +447,81 @@ function resolveRunDraw() {
     gacha.renderGachaResults([result], $("run-draw-result"));
     gacha.renderHomeProgress();
     state.runDrawDone = true;
-    $("btn-run-draw").textContent = "進入劇情 ▶";
+    $("btn-run-draw").textContent = state.runDrawMode === "start" ? "進入劇情 ▶" : "補進手牌 ▶";
     return;
   }
   $("screen-run-draw").classList.add("hidden");
-  dealHand();
-  $("screen-start").classList.add("hidden");
-  loadScene(debugScene && getScene(debugScene) ? debugScene : DATA.start);
+  if (state.runDrawMode === "start") {
+    dealHand();
+    $("screen-start").classList.add("hidden");
+    loadScene(DATA.start);
+  } else {
+    state.hand.push(state.runDrawCardId);
+    state.pendingDiscard = null;
+    state.runDrawCardId = null;
+    goNext();
+  }
 }
 
+// ------------------------------------------------------------
+// 首頁與開始
+// ------------------------------------------------------------
 function hidePanels() {
   ["screen-gacha", "screen-collection", "screen-endings", "screen-ending", "screen-run-draw"].forEach((id) => $(id).classList.add("hidden"));
 }
-
 function resetRunState() {
-  state.stats = freshStats();
-  state.tolerance = Number.isFinite(debugTolerance) && debugTolerance >= 0
-    ? clamp(debugTolerance, 0, TOLERANCE_MAX)
-    : TOLERANCE_MAX;
-  state.emergencyPending = state.tolerance <= 0;
-  state.emergencyCardId = null;
-  state.forcedEnding = null;
+  Object.keys(state.stats).forEach((key) => (state.stats[key] = 0));
   state.hand = [];
   state.cardUse = {};
-  state.flags = new Set();
-  state.choiceHistory = [];
   state.stopCount = 0;
   state.pendingNext = null;
   state.pendingDanger = null;
   state.lastUsedCard = null;
-  state.lastCardLeadIn = "";
   state.pendingDiscard = null;
   state.runDrawCardId = null;
   state.lastDialogue = null;
-  renderHud();
 }
-
 function startGame() {
   resetRunState();
   hidePanels();
-  $("screen-start").classList.add("hidden");
-  openRunDraw();
+  $("screen-start").classList.add("hidden"); // 修正：舊版漏了這行導致首頁蓋住抽卡畫面（原 v041-hotfix）
+  openRunDraw("start");
 }
-
 function backHome() {
   state.mode = "start";
   hidePanels();
-  ["dialog", "topbar", "hand-overlay", "scene-choice-overlay", "rescue-overlay", "swap-overlay", "emergency-overlay", "cutin"].forEach((id) => $(id).classList.add("hidden"));
+  ["dialog", "topbar", "hand-overlay", "rescue-overlay", "swap-overlay", "cutin"].forEach((id) => $(id).classList.add("hidden"));
   hideGumaEmotionText();
   audio.setMood("office");
   gacha.renderHomeProgress();
   $("screen-start").classList.remove("hidden");
 }
 
+// ------------------------------------------------------------
+// 入口與事件綁定
+// ------------------------------------------------------------
 async function init() {
   fitStage();
   window.addEventListener("resize", fitStage);
   try {
-    await Promise.all([loadData(), loadCardLeadIns()]);
-  } catch (error) {
+    await loadData();
+  } catch (err) {
     const box = document.createElement("div");
     box.className = "load-error";
-    box.innerHTML = "<h2>資料載入失敗</h2><p>請使用本機伺服器或 GitHub Pages 開啟。</p>";
+    box.innerHTML = `<h2>資料載入失敗</h2><p>請不要直接雙擊開啟 index.html，改用本機伺服器：</p><p>在專案根目錄執行 <code>python3 -m http.server 8000</code></p>`;
     $("stage").appendChild(box);
-    console.error(error);
+    console.error(err);
     return;
   }
-
   store.bootstrapPlayerData();
   preloadBackgrounds();
   gacha.renderHomeProgress();
   audio.updateButton();
-  audio.setMood("office");
-  renderHud();
+
+  // 瀏覽器規定音訊要在使用者手勢後啟動：第一次點擊時解鎖
   window.addEventListener("pointerdown", () => audio.unlock(), { once: true });
 
-  const on = (id, handler) => $(id).addEventListener("click", (event) => {
-    event.stopPropagation();
-    handler();
-  });
-
+  const on = (id, handler) => $(id).addEventListener("click", (e) => { e.stopPropagation(); handler(); });
   on("btn-start", startGame);
   on("btn-restart", startGame);
   on("btn-back-home", backHome);
@@ -787,28 +534,14 @@ async function init() {
   on("btn-close-collection", gacha.closeCollection);
   on("btn-open-endings", gacha.openEndings);
   on("btn-close-endings", gacha.closeEndings);
-  on("btn-ending-gallery", () => {
-    $("screen-ending").classList.add("hidden");
-    gacha.openEndings();
-  });
-  on("btn-no-rescue", () => {
-    $("rescue-overlay").classList.add("hidden");
-    openSwap();
-  });
+  on("btn-ending-gallery", () => { $("screen-ending").classList.add("hidden"); gacha.openEndings(); });
+  on("btn-no-rescue", () => { $("rescue-overlay").classList.add("hidden"); openSwap(); });
   on("btn-no-swap", goNext);
-  on("btn-confirm-swap", confirmSwap);
   on("btn-bgm", audio.toggleMute);
-  on("btn-emergency-roll", rollEmergencyDice);
-  on("btn-emergency-give-up", () => emergencyFail(state.emergencyCardId ? "four" : "no_card"));
 
-  $("stage").addEventListener("click", () => {
-    if (state.mode === "story") advance();
-  });
-  window.addEventListener("keydown", (event) => {
-    if ((event.key === " " || event.key === "Enter") && state.mode === "story") {
-      event.preventDefault();
-      advance();
-    }
+  $("stage").addEventListener("click", () => { if (state.mode === "story") advance(); });
+  window.addEventListener("keydown", (e) => {
+    if ((e.key === " " || e.key === "Enter") && state.mode === "story") { e.preventDefault(); advance(); }
   });
 }
 

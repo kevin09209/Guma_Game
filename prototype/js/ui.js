@@ -25,37 +25,7 @@ export function fitStage() {
 export const rarityBadge = (card, extraClass = "") =>
   `<span class="card-rarity rarity-${esc(card.rarity)} ${extraClass}">${esc(card.rarity)}</span>`;
 
-function pulseStage(className, duration = 220) {
-  const stage = $("stage");
-  if (!stage) return;
-  stage.classList.remove(className);
-  void stage.offsetWidth;
-  stage.classList.add(className);
-  window.setTimeout(() => stage.classList.remove(className), duration);
-}
-
-function playCardPickFeedback(btn, cardId, onClick) {
-  const group = btn.closest(".hand") || btn.parentElement;
-  const cards = group ? Array.from(group.querySelectorAll(".card")) : [btn];
-
-  pulseStage("card-pick-flash", 220);
-
-  cards.forEach((cardButton) => {
-    cardButton.disabled = true;
-    cardButton.classList.toggle("selected-card", cardButton === btn);
-    cardButton.classList.toggle("dim-card", cardButton !== btn);
-  });
-
-  const overlay = btn.closest(".hand-overlay, .rescue-overlay, .swap-overlay");
-  overlay?.classList.add("card-pick-freeze");
-
-  window.setTimeout(() => {
-    overlay?.classList.remove("card-pick-freeze");
-    onClick(cardId);
-  }, 110);
-}
-
-// 建立一張可點擊的卡片按鈕（手牌、補救、緊急救援共用）
+// 建立一張可點擊的卡片按鈕（手牌、補救、汰換共用）
 export function buildCardButton(cardId, onClick) {
   const card = getCard(cardId);
   const btn = document.createElement("button");
@@ -64,11 +34,7 @@ export function buildCardButton(cardId, onClick) {
     <div class="card-art">${rarityBadge(card)}<span class="placeholder-line">「${esc(card.line)}」</span></div>
     <div class="card-meta"><div class="card-name">${esc(card.name)}</div><div class="card-desc">${esc(card.description)}</div></div>`;
   tryLoadCardArt(btn.querySelector(".card-art"), card);
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (btn.disabled) return;
-    playCardPickFeedback(btn, cardId, onClick);
-  });
+  btn.addEventListener("click", (e) => { e.stopPropagation(); if (!btn.disabled) onClick(cardId); });
   return btn;
 }
 

@@ -1,241 +1,132 @@
-# 架構與開發守則（v0.6）
+# 架構與開發守則（Architecture & Coding Guidelines）
 
-> 給後續開發者與 AI 協作模型。修改專案前先讀完。
+> 給後續的開發者與 AI 協作模型。改動這個專案之前，先讀完本文件。
+> 精簡版守則在專案根目錄的 `.cursorrules`。
+
+---
 
 ## 1. 架構總覽
 
 ```text
-/data        遊戲內容：卡片、場景、選擇題、女主、結局
-/prototype   遊戲引擎：純 HTML/CSS/ES modules
-/tests       資料驗證、平衡模擬、Playwright E2E
-/docs        企劃與規格
+/data        遊戲「內容」：卡片、場景劇本、女主角、結局（JSON，非工程師可改）
+/prototype   遊戲「引擎」：純 HTML/CSS/JS，無框架、無建置步驟
+  main.js       單局流程狀態機（劇本 → 出牌 → 補救 → 汰換 → 跳轉 → 結局）
+  js/config.js  常數與平衡參數（機率、獎勵、教學手牌、BGM 對應）
+  js/storage.js 玩家持久資料——唯一允許碰 localStorage 的模組
+  js/data.js    /data JSON 的載入與查詢——載入後視為唯讀
+  js/ui.js      共用 UI 工具（esc、卡片按鈕、舞台縮放）
+  js/gacha.js   抽卡經濟、卡片收藏、結局圖鑑（跨局系統）
+  js/audio.js   BGM 與音效（Web Audio 程序生成，零音檔）
+/assets      素材（背景 SVG、立繪、卡圖）
+/tests       驗證（validate 資料、simulate 平衡、e2e 全流程）
+/docs        企劃書與規格文件
 ```
 
-### 引擎模組
+**核心原則：內容與引擎分離。** 台詞、數值、跳轉、機率的改動只進 JSON 或
+`config.js`，不進邏輯程式碼。引擎不 hardcode 任何卡片或場景的特例。
+
+### 單局流程狀態機（`state.mode`）
 
 ```text
-main.js          單局流程協調器，不放大量內容資料
-js/config.js     常數與平衡參數
-js/storage.js    唯一允許讀寫 localStorage 的模組
-js/data.js       載入、合併與查詢 /data
-js/ui.js         共用 DOM 與卡片 UI
-js/gacha.js      抽卡、收藏、結局圖鑑
-js/audio.js      BGM 與音效
-js/tolerance.js  女主忍受條公式與顯示
-js/choices.js    場景選擇、flags 與記憶條件
-js/swap.js       汰換候選、翻面補牌
-js/emergency.js  緊急任務、骰子與救援計算
+start → run-draw（開局抽 1 張）→ story ⇄ hand → cutin → story
+      → [rescue（危險結果且手上有補救卡才出現）]
+      → [swap（下一站是結局時跳過）→ run-draw（汰換抽卡）]
+      → 下一個場景 story… → ending → start
 ```
 
-## 2. 核心原則
+改動流程時必須維持這張圖的完整性：每個 mode 都要有離開的路徑，
+任何 overlay 的開啟都要有對應關閉，否則玩家會卡死（v0.4.1 的卡死
+bug 就是 `startGame` 漏關 `screen-start` 造成的）。
 
-### 內容與引擎分離
+---
 
-台詞、選項、分數、記憶條件與結局文案應放在 `/data`：
+## 2. 鐵律（違反即退回）
+
+1. **禁止補丁疊層。** 不允許新增 `*-hotfix.js`、`*-fixes.css` 之類的覆蓋檔，
+   也不允許用全域覆寫函式修 bug。修正一律改主檔，改完跑測試。
+   （歷史教訓：v0.4.1 曾同時存在 hotfix JS＋兩層 CSS 補丁，規則互相重複。）
+2. **資料字串進 `innerHTML` 必須經過 `ui.js` 的 `esc()`。**
+   卡片名稱、台詞、描述、劇本文字都算資料字串。用 `textContent` 則不需要。
+3. **localStorage 只透過 `storage.js`。** 所有讀寫都有 try/catch 降級
+   （Safari 無痕模式會 throw），遊戲必須在存不了檔時照常可玩。
+4. **`DATA` 載入後唯讀。** 引擎不得修改 `/data` 載進來的物件。
+5. **不引入框架、打包器、建置步驟。** 這是刻意決策（見 §6）。
+   ES modules 直接跑在瀏覽器上，部署即複製檔案。
+6. **註解用繁體中文**，解釋「為什麼」而非「做什麼」；程式風格跟隨現有檔案。
+7. **改平衡（數值/機率/結局條件）必附模擬結果**：跑 `node tests/simulate.js`，
+   確認 13 個結局全部可達，且分布合理（見 §5）。
+
+---
+
+## 3. 如何安全地加內容
+
+| 想加什麼 | 改哪裡 | 注意 |
+|---|---|---|
+| 新卡片 | `data/cards.json` | 必填 `tags` 與 8 鍵 `effects`；不加場景專屬結果也能玩（走 fallback） |
+| 卡片的場景專屬演出 | `data/scenes.json` 的 `card_results` | `next` 必須指向存在的場景或 `"ending"` |
+| 新場景 | `data/scenes.json` | 必填 `fallback`（含 `next`）與 `bgm`；把某些卡的 `next` 指向它才會被走到 |
+| 危險節點 | 場景結果加 `danger: true` + `rescue: { prompt, script, effects }` | 補救卡＝手牌中帶「補救」標籤的卡 |
+| 新結局 | `data/endings.json` | **順序即優先序**；最後一項必須是無條件保底（validate 會擋） |
+| 新 BGM 曲風 | `prototype/js/audio.js` 的 `MOODS` | 場景 `bgm` 欄位引用曲風名；validate 會檢查名稱合法 |
+| 平衡調整 | 卡片 `effects`、場景 tags、結局 conditions | 改完跑 simulate 看分布 |
+| 換素材 | `assets/`（同名覆蓋） | 規格見 `docs/scene_guide.md` 與 `assets/cards/README.md` |
+
+**標籤經濟公式**（引擎與 `tests/simulate.js` 各有一份，改公式要同步兩處）：
 
 ```text
-cards.json
-heroines.json
-scenes.json
-scene_choices.json
-card_reaction_profiles.json
-scene_card_results_phase2.json
-scene_card_results_v055_confession.json
-endings.json
-emergency_endings.json
+卡片 tag 命中 場景 preferred_tags → 好感 +1／每個
+卡片 tag 命中 場景 danger_tags    → 社死 +2、尷尬 +2／每個
+卡片 tag 命中 女主 likes          → 好感 +1／每個
+卡片 tag 命中 女主 dislikes       → 好感 -2、尷尬 +2／每個
 ```
 
-`main.js` 不應再次硬寫整批場景選項、結局文案或卡片特例。
+---
 
-### 禁止補丁疊層
-
-- 不新增 `hotfix.js`、`fixes.js` 或全域 monkey patch
-- 修正應進入對應模組
-- classic script 不得覆寫 ES module 內部函式
-- 新系統優先依職責建立模組，而不是持續擴大 `main.js`
-
-### 安全規則
-
-1. 資料字串進 `innerHTML` 必須先經過 `esc()`。
-2. localStorage 只能透過 `storage.js`。
-3. `/data` 載入後，流程程式不應任意修改原始內容物件。
-4. 所有 overlay 必須有明確關閉路徑。
-5. 平衡公式修改後必須同步測試與模擬。
-
-## 3. v0.6 狀態機
-
-```text
-start
-→ opening-draw
-→ scene-intro
-→ scene-memory-lines
-→ scene-choice
-→ player-reply
-→ heroine-reply
-→ hand
-→ card-cutin
-→ card-result
-→ tolerance-check
-   ├─ emergency
-   │   ├─ dice 1~3 → rescue-success → swap
-   │   └─ dice 4~6 / no-card → forced-ending
-   ├─ normal-rescue
-   └─ swap
-       ├─ no-swap
-       └─ select → reselect → confirm → flip
-→ next-scene / ending
-```
-
-任何新 mode 都必須有離開路徑，避免 overlay 卡死。
-
-## 4. 場景選擇與行為記憶
-
-`data/scene_choices.json` 的選項格式：
-
-```json
-{
-  "id": "hold_hands",
-  "label": "是，伸手",
-  "player_line": "好，那我牽著妳。",
-  "heroine_emotion": "soft",
-  "heroine_reply": "這次你倒是沒有搞砸。",
-  "effects": { "favorability": 4, "sincerity": 2 },
-  "set_flags": ["held_hands"],
-  "remove_flags": [],
-  "requires_flags": [],
-  "blocks_flags": []
-}
-```
-
-場景可加入記憶台詞：
-
-```json
-{
-  "requires_flags": ["held_hands"],
-  "speaker": "heroine",
-  "emotion": "soft",
-  "text": "你剛剛都敢牽手了，現在反而不敢開口？"
-}
-```
-
-flags 目前只存在單局內：
-
-```text
-state.flags
-state.choiceHistory
-```
-
-## 5. 卡片反應矩陣
-
-優先序：
-
-```text
-scenes.json 手寫 card_results
-→ scene_card_results_phase2.json
-→ scene_card_results_v055_confession.json
-→ card_reaction_profiles.json
-→ data.js 自動補齊
-```
-
-每張卡必須有 reaction profile。新增卡片時至少要補：
-
-```text
-cards.json
-card_reaction_profiles.json
-```
-
-## 6. 忍受條與緊急任務
-
-忍受條由 `tolerance.js` 管理：
-
-```text
-初始 100
-尷尬、社死、負好感、負真誠 → 扣除
-好感、真誠、少量搞笑與自信 → 回復
-0% → 緊急任務
-```
-
-緊急任務由 `emergency.js` 管理：
-
-```text
-SSR / UR 救援
-1~3：當前場景效果 × 點數
-4：Four!
-5：水床沒玩到
-6：完全法克
-```
-
-緊急壞結局存放在 `data/emergency_endings.json`，並加入結局圖鑑。
-
-## 7. 汰換規則
-
-汰換由 `swap.js` 處理：
-
-```text
-選擇卡片
-→ 可反覆改選
-→ 確認汰換
-→ 補牌池排除目前手牌與被棄牌
-→ 原地翻面顯示新牌
-```
-
-只有按下「確認汰換」後才能更動手牌。
-
-## 8. 測試守則
+## 4. 測試守則
 
 ```bash
-node tests/validate.js
-node tests/simulate.js
-node tests/e2e.js
+node tests/validate.js   # 改任何 /data JSON 之後【必跑】：引用完整性、契約檢查
+node tests/simulate.js   # 改平衡之後【必跑】：13 結局全可達＋分布
+node tests/e2e.js        # 改引擎/UI 之後【必跑】：Playwright 全流程
 ```
 
-### validate 必須涵蓋
+e2e 需要 `npm i playwright` 與本機伺服器（`python3 -m http.server 8000`）。
+可用環境變數 `E2E_BASE`、`E2E_CHROMIUM` 覆寫。
 
-- 卡片、場景、女主與結局 ID
-- supplemental card results
-- 每張卡 reaction profile
-- scene choices 必填欄位與 flags 格式
-- emergency endings
-- 全卡 × 全場景矩陣保底
+**測試技巧**：網址加 `?hand=card_001,card_002,...` 可固定起手牌。
+注意開局抽卡會頂掉手牌第 5 格，所以測試需要的卡一律放前 4 格。
 
-### E2E 必須涵蓋
+---
 
-- 場景選項後先顯示男主，再顯示女主
-- 出牌不重複觸發
-- 汰換可改選、確認後才換牌
-- 補牌不與目前手牌重複
-- 忍受歸零先出現「等等！！！」
-- 緊急骰 1～3 成功、4～6 壞結局
-- 緊急壞結局加入圖鑑
-- BGM 靜音切換
+## 5. 平衡基準（2026-07 快照）
 
-### 可重現測試參數
+25 張牌庫、8 場景圖、一輪 4~5 站。simulate 的健康分布長這樣：
 
-```text
-?hand=card_001,card_002,...
-?scene=ev_confession
-?tolerance=0
-?dice=4
-```
+- 保底「被吐槽但留下印象」＋主線「從吐槽到理解」合計約 75~85%
+- 卡片路線結局（同卡 3 次）各 <1%（玩家刻意才觸發，正確）
+- 特殊結局（社死線、食物線、純愛線）各 0.5%~16%
+- **任何結局 0% ＝資料改壞了**，simulate 會以非零狀態碼失敗
 
-## 9. 新增內容對照表
+---
 
-| 需求 | 修改位置 |
+## 6. 決策紀錄（為什麼是現在這樣）
+
+| 決策 | 理由 |
 |---|---|
-| 新卡片 | `cards.json` + `card_reaction_profiles.json` |
-| 場景卡片專屬反應 | `scenes.json` 或 supplemental result |
-| 場景選擇題 | `scene_choices.json` |
-| 行為記憶 | 選項 `set_flags` + 場景 `memory_lines` |
-| 一般結局 | `endings.json` |
-| 緊急結局 | `emergency_endings.json` |
-| 忍受條公式 | `tolerance.js` |
-| 緊急骰規則 | `emergency.js` |
-| 汰換演出 | `swap.js` + 對應 CSS |
+| 純 vanilla JS、無建置 | 專案由非工程背景的企劃直接改內容；`git clone` 後起個靜態伺服器就能跑；GitHub Pages 直接部署 |
+| ES modules 拆檔 | 687 行單檔已到可維護性極限；模組邊界＝職責邊界（見 §1） |
+| BGM 用 Web Audio 程序生成 | 零音檔資產、零版權問題、零載入時間；之後要換真音樂，只需改 `audio.js` 的 `setMood()` 為播 `<audio>`，介面不變 |
+| 部署走 gh-pages 分支 | Actions 權杖無法自動開啟 Pages（configure-pages 的 enablement 需管理權限）；推 gh-pages 分支可用 |
+| 首局固定教學手牌 | 隨機起手可能讓新手第一局全拿高風險卡直接翻車 |
+| 結局判定「由上而下第一個命中」 | 讓內容編輯者用「順序」表達優先級，不用寫互斥條件 |
+| 卡片缺圖顯示占位卡面 | 內容先行、美術後補；圖放進 `assets/cards/` 即自動生效 |
 
-## 10. 目前後續債務
+---
 
-- CSS 仍按歷史版本分檔，後續可整理成 `base/cards/story/emergency/animations`
-- `simulate.js` 尚未模擬場景選項、忍受條與緊急任務；目前只負責一般結局可達性
-- 立繪與卡圖仍多為暫代素材
-- 迷因碎片目前缺少消耗用途
-- flags 目前只保存單局，尚未支援中途存檔
+## 7. 已知債務與下一步
+
+- `tests/simulate.js` 的標籤公式與 `main.js` 重複實作（改公式要同步兩處）；
+  牌庫超過 40 張後建議把公式抽成共用模組再由兩邊引用
+- 熟練度（卡片 Lv1~3）、女主容忍度尚未實作（規格見 `docs/GDD.md` v0.2 §12–13）
+- 立繪為剪影暫代圖；卡圖 25 張皆為占位卡面
+- 迷因碎片目前只進不出：規劃中的用途是兌換指定卡（見 `docs/v0.4_gacha_gallery_spec.md`）
