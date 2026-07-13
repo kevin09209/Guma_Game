@@ -1,8 +1,10 @@
 /* ============================================================
    swap.js — 手牌汰換與翻面補牌
+   ------------------------------------------------------------
+   v0.6.2：汰換與翻面補牌統一顯示正式卡面。
    ============================================================ */
 
-import { $, esc, tryLoadCardArt } from "./ui.js";
+import { $, esc, applyCardAtlas } from "./ui.js";
 
 export function drawReplacementCard({ cards, ownedIds, currentHand, discardedId }) {
   const excluded = new Set([...currentHand, discardedId]);
@@ -14,17 +16,13 @@ export function drawReplacementCard({ cards, ownedIds, currentHand, discardedId 
 
 export function buildSwapCardButton({ card, selected, onSelect }) {
   const button = document.createElement("button");
-  button.className = `card swap-select-card${selected ? " selected-card" : ""}`;
+  button.className = `card formal-card-button swap-select-card${selected ? " selected-card" : ""}`;
+  button.title = `${card.rarity}｜${card.name}｜${card.description}`;
   button.innerHTML = `
-    <div class="card-art">
-      <span class="card-rarity rarity-${esc(card.rarity)}">${esc(card.rarity)}</span>
-      <span class="placeholder-line">「${esc(card.line)}」</span>
-    </div>
-    <div class="card-meta">
-      <div class="card-name">${esc(card.name)}</div>
-      <div class="card-desc">${esc(card.description)}</div>
-    </div>`;
-  tryLoadCardArt(button.querySelector(".card-art"), card);
+    <div class="formal-card-art"></div>
+    <span class="card-name card-accessible-text">${esc(card.name)}</span>
+    <span class="placeholder-line card-accessible-text">「${esc(card.line)}」</span>`;
+  applyCardAtlas(button.querySelector(".formal-card-art"), card);
   button.addEventListener("click", (event) => {
     event.stopPropagation();
     onSelect(card.id);
@@ -47,11 +45,11 @@ export function renderReplacementFlip(card) {
       <div class="swap-flip-inner">
         <div class="swap-card-face swap-card-back">NEW CARD</div>
         <div class="swap-card-face swap-card-front">
-          <span class="card-rarity rarity-${esc(card.rarity)}">${esc(card.rarity)}</span>
-          <div class="card-name">${esc(card.name)}</div>
-          <div class="card-line">「${esc(card.line)}」</div>
+          <div class="swap-replacement-art"></div>
+          <span class="card-name card-accessible-text">${esc(card.name)}</span>
         </div>
       </div>
     </div>`;
+  applyCardAtlas($("swap-result").querySelector(".swap-replacement-art"), card);
   $("swap-result").classList.remove("hidden");
 }
