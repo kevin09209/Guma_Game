@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Gumayuwei 搞笑戀愛模擬器</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="v041-fixes.css" />
-  <link rel="stylesheet" href="v042-transitions.css" />
 </head>
 <body>
   <div id="rotate-hint">
@@ -33,6 +31,9 @@
         <span id="hud-location" class="hud-location"></span>
         <div id="hud-stats" class="hud-stats"></div>
       </header>
+
+      <!-- BGM 靜音切換（任何畫面都可按） -->
+      <button id="btn-bgm" class="bgm-btn" title="背景音樂 開/關">🔊</button>
 
       <div id="dialog" class="dialog hidden">
         <div id="nameplate" class="nameplate"></div>
@@ -143,8 +144,6 @@
     </div>
   </div>
 
-  <script src="main.js"></script>
-  <script src="v041-hotfix.js"></script>
-  <script src="v042-transitions.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>

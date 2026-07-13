@@ -521,7 +521,8 @@ async function init() {
   // 瀏覽器規定音訊要在使用者手勢後啟動：第一次點擊時解鎖
   window.addEventListener("pointerdown", () => audio.unlock(), { once: true });
 
-  const on = (id, handler) => $(id).addEventListener("click", (e) => { e.stopPropagation(); handler(); });
+  // 容錯：某個按鈕在 HTML 缺失時，只跳過它，不中斷後續綁定（避免一顆缺失鈕拖垮整個 init）
+  const on = (id, handler) => { const el = $(id); if (el) el.addEventListener("click", (e) => { e.stopPropagation(); handler(); }); };
   on("btn-start", startGame);
   on("btn-restart", startGame);
   on("btn-back-home", backHome);
