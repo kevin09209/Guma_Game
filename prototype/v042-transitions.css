@@ -1,0 +1,249 @@
+/* ============================================================
+   v0.4.2 / v0.5.2 轉場演出升級
+   調整版：只有真正換場景時才出現過場，不在每個 UI 動作都 loading。
+   Phase 2：強化選卡爽感、卡片確認、凍結節奏、cut-in pulse。
+   ============================================================ */
+
+:root {
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.25) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 25%, rgba(0, 0, 0, 0.10));
+  opacity: 0.7;
+}
+
+#stage.card-pick-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 29;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.42), transparent 28%),
+    linear-gradient(90deg, transparent, rgba(255, 211, 77, 0.28), transparent);
+  animation: cardPickFlash 320ms ease-out both;
+}
+
+@keyframes cardPickFlash {
+  0% { opacity: 0; transform: scaleX(0.82); filter: blur(8px); }
+  35% { opacity: 1; transform: scaleX(1); filter: blur(0); }
+  100% { opacity: 0; transform: scaleX(1.08); filter: blur(10px); }
+}
+
+#transition-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 211, 77, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(13, 13, 24, 0.96), rgba(32, 26, 52, 0.96));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#transition-wipe.active {
+  animation: sceneIntroCard 1180ms var(--ease-premium) both;
+}
+
+#transition-wipe::after { content: ""; }
+
+.scene-card {
+  min-width: 460px;
+  max-width: 720px;
+  padding: 30px 42px;
+  border: 1px solid rgba(255, 211, 77, 0.38);
+  border-radius: 20px;
+  background: rgba(12, 12, 22, 0.76);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), inset 0 0 28px rgba(255, 211, 77, 0.05);
+  text-align: center;
+  transform: translateY(12px) scale(0.98);
+}
+
+#transition-wipe.active .scene-card { animation: sceneCardTextIn 900ms var(--ease-premium) both; }
+
+.scene-kicker {
+  color: rgba(255, 211, 77, 0.78);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.34em;
+  margin-bottom: 14px;
+}
+
+.scene-title {
+  color: #f4f0e8;
+  font-size: 36px;
+  line-height: 1.25;
+  font-weight: 900;
+  text-shadow: 0 0 28px rgba(255, 211, 77, 0.18);
+  margin-bottom: 10px;
+}
+
+.scene-location {
+  color: #bbb6c8;
+  font-size: 17px;
+  letter-spacing: 0.12em;
+}
+
+@keyframes sceneIntroCard {
+  0% { opacity: 0; filter: blur(8px); }
+  16% { opacity: 1; filter: blur(0); }
+  72% { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; filter: blur(6px); }
+}
+
+@keyframes sceneCardTextIn {
+  0% { opacity: 0; transform: translateY(18px) scale(0.96); }
+  34% { opacity: 1; transform: translateY(0) scale(1); }
+  78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(1.015); }
+}
+
+.bg.scene-entering { animation: bgPremiumIn 780ms var(--ease-premium) both; }
+
+@keyframes bgPremiumIn {
+  0% { opacity: 0; transform: scale(1.045); filter: blur(8px) brightness(0.78); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+}
+
+.sprite.scene-fade-in { animation: spriteFadeIn 640ms var(--ease-premium) both; }
+
+@keyframes spriteFadeIn {
+  0% { opacity: 0; transform: scale(0.985); filter: blur(4px) brightness(0.76); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0) brightness(1); }
+}
+
+.dialog.dialog-enter { animation: dialogPremiumIn 300ms var(--ease-premium) both; }
+
+@keyframes dialogPremiumIn {
+  0% { opacity: 0; transform: translateY(14px); filter: blur(3px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.nameplate.nameplate-pop { animation: nameplatePop 240ms var(--ease-snap) both; }
+
+@keyframes nameplatePop {
+  0% { opacity: 0; transform: translateY(5px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hand-overlay.hand-enter { animation: handOverlayIn 260ms ease-out both; }
+
+@keyframes handOverlayIn {
+  0% { opacity: 0; backdrop-filter: blur(0); }
+  100% { opacity: 1; backdrop-filter: blur(3px); }
+}
+
+.hand-overlay .choice-context { animation: contextIn 280ms var(--ease-premium) both; }
+
+@keyframes contextIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.hand-overlay .hand .card {
+  animation: cardFanIn 330ms var(--ease-snap) both;
+  animation-delay: calc(var(--card-index, 0) * 52ms);
+}
+
+@keyframes cardFanIn {
+  0% { opacity: 0; transform: translateY(48px) rotate(2deg) scale(0.93); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) rotate(0) scale(1); filter: blur(0); }
+}
+
+.hand .card.selected-card,
+.hand-small .card.selected-card {
+  position: relative;
+  z-index: 4;
+  animation: selectedCardConfirm 300ms var(--ease-snap) both;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(255, 211, 77, 0.75),
+    0 0 34px rgba(255, 211, 77, 0.48),
+    0 18px 45px rgba(0, 0, 0, 0.65);
+}
+
+.hand .card.selected-card::after,
+.hand-small .card.selected-card::after {
+  content: "SELECTED";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 14px rgba(255, 211, 77, 0.65);
+}
+
+.hand .card.dim-card,
+.hand-small .card.dim-card {
+  opacity: 0.22;
+  filter: grayscale(0.85) blur(1px);
+  transform: scale(0.94);
+}
+
+.card-pick-freeze .choice-context,
+.card-pick-freeze .swap-title,
+.card-pick-freeze .rescue-title {
+  animation: chosenContextPulse 260ms ease-out both;
+}
+
+@keyframes selectedCardConfirm {
+  0% { transform: translateY(0) scale(1); }
+  60% { transform: translateY(-34px) scale(1.13) rotate(-1.5deg); }
+  100% { transform: translateY(-22px) scale(1.08) rotate(-1deg); }
+}
+
+@keyframes chosenContextPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
+.cutin.v042-cutin-pulse .cutin-card {
+  animation: cardIn 0.45s cubic-bezier(0.2, 1.4, 0.4, 1), cutinPulse 920ms ease-out 1;
+}
+
+@keyframes cutinPulse {
+  0% { box-shadow: 0 0 0 rgba(255, 211, 77, 0); }
+  42% { box-shadow: 0 0 92px rgba(255, 211, 77, 0.62), 0 0 120px rgba(255, 255, 255, 0.12); }
+  100% { box-shadow: 0 0 60px rgba(255, 211, 77, 0.45), 0 24px 60px rgba(0, 0, 0, 0.7); }
+}
+
+.gacha-card {
+  transform-origin: center bottom;
+  animation: drawReveal 420ms var(--ease-snap) both;
+}
+
+@keyframes drawReveal {
+  0% { opacity: 0; transform: rotateY(72deg) translateY(28px) scale(0.9); filter: blur(6px); }
+  68% { opacity: 1; transform: rotateY(-8deg) translateY(-4px) scale(1.04); filter: blur(0); }
+  100% { opacity: 1; transform: rotateY(0) translateY(0) scale(1); filter: blur(0); }
+}
+
+.ending-title { animation: endingTitleIn 520ms var(--ease-premium) both; }
+
+@keyframes endingTitleIn {
+  0% { opacity: 0; transform: translateY(18px) scale(0.96); letter-spacing: 0.12em; filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: normal; filter: blur(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

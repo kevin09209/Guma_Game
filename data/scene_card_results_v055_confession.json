@@ -1,0 +1,120 @@
+{
+  "_comment": "v0.5.5 告白場景精修：UR / SSR 卡專屬手寫劇情。此檔會覆蓋自動產生結果與 Phase 2 補充結果。",
+  "scene_card_results": {
+    "ev_confession": {
+      "card_005": {
+        "script": [
+          { "type": "narration", "text": "夜風從街角吹過。到了真正要說出口的時候，Gumayuwei 沒有耍帥，也沒有搞怪。他只是安靜地站著，像一尊努力不要裂開的摩艾。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "你現在不說話，我反而聽得懂。你其實很緊張，對吧？" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "……嗯。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "那就慢慢說。我不急。這次換我等你。" },
+          { "type": "narration", "text": "沉默第一次不是逃避，而是把真心留在原地。她沒有催你，只是站近了一點。" }
+        ],
+        "effects": { "favorability": 10, "awkwardness": -4, "comedy": 2, "sincerity": 10, "confidence": 1, "social_death": 0, "appetite": 0, "battle": 0 },
+        "next": "ending"
+      },
+      "card_017": {
+        "script": [
+          { "type": "narration", "text": "告白的氣氛凝住了。Gumayuwei 深吸一口氣，突然把手上的飲料杯當成籃球，做出一個不存在防守者的空中拉桿。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "shock", "text": "你在告白前做切入？這裡不是禁區，是人行道。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "我只是想說，我想把這球投進妳心裡。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "很土。非常土。但你剛剛那個拉桿有努力，我給你兩分。至於告白……先進延長賽。" },
+          { "type": "narration", "text": "她笑得很久。不是拒絕，也不是答應，是一個足夠讓你今晚睡不著的延長賽。" }
+        ],
+        "effects": { "favorability": 6, "awkwardness": 2, "comedy": 10, "sincerity": 3, "confidence": 8, "social_death": 1, "appetite": 0, "battle": 12 },
+        "next": "ending"
+      },
+      "card_018": {
+        "script": [
+          { "type": "narration", "text": "Gumayuwei 的臉突然像熱血漫畫一樣燃起紅色氣場。路燈下，他的影子看起來像準備打最終 Boss。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "紅色怒火覺醒！我不想再當只會裝沒事的人了！" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "shock", "text": "等一下，你的怒火是對誰？對晚餐太貴嗎？" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "對我自己！我喜歡妳，但我每次都把話講得像壞掉的活動公告！" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "……這句很吵，但我聽懂了。下次音量小一點，內容可以保留。" },
+          { "type": "narration", "text": "熱血過頭的告白撞進夜風裡，意外沒有爆炸。她甚至沒有退後。" }
+        ],
+        "effects": { "favorability": 7, "awkwardness": 3, "comedy": 8, "sincerity": 8, "confidence": 9, "social_death": 2, "appetite": 0, "battle": 10 },
+        "next": "ending"
+      },
+      "card_019": {
+        "script": [
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "領域展開——真心無量空處。" },
+          { "type": "narration", "text": "他張開雙手，彷彿真的有看不見的特效從地面展開。現場只有路燈、便利商店招牌，還有一個準備吐槽的人。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "不要把告白變成大招名稱！而且真心無量空處聽起來像會讓人加班到失智。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "那……領域解除。我喜歡妳。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "你看，解除之後好多了。雖然剛剛很中二，但最後這句，我收到了。" },
+          { "type": "narration", "text": "中二的外殼碎掉後，裡面居然是一句很普通、很真心的喜歡。" }
+        ],
+        "effects": { "favorability": 6, "awkwardness": 2, "comedy": 11, "sincerity": 7, "confidence": 6, "social_death": 3, "appetite": 0, "battle": 9 },
+        "next": "ending"
+      },
+      "card_020": {
+        "script": [
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "教練，我想打副本。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "smile", "text": "副本名稱？" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "跟妳一起下班以後的人生。難度未知，隊友只有妳能選。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "……你這句很中二，可是有打到我。那我先加入隊伍，但不保證不罵你。" },
+          { "type": "narration", "text": "你獲得了她的臨時組隊許可。副本沒有通關提示，但她站在你旁邊。" }
+        ],
+        "effects": { "favorability": 10, "awkwardness": -1, "comedy": 5, "sincerity": 9, "confidence": 7, "social_death": 0, "appetite": 0, "battle": 8 },
+        "next": "ending"
+      },
+      "card_021": {
+        "script": [
+          { "type": "narration", "text": "Gumayuwei 握緊拳頭，像是要對整個宇宙宣布某件不太成熟但很重要的事。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "shout", "text": "我不會放棄 Gumayuwei，也不會放棄喜歡妳這件事！" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "你把自己的名字喊進告白裡，真的很像競選口號。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "那妳要投我嗎？" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "我先不棄權。你繼續表現。" },
+          { "type": "narration", "text": "這不是滿分答覆，但她的笑意沒有撤退。永不放棄，有時候真的能多撐一回合。" }
+        ],
+        "effects": { "favorability": 8, "awkwardness": 1, "comedy": 7, "sincerity": 7, "confidence": 9, "social_death": 1, "appetite": 0, "battle": 6 },
+        "next": "ending"
+      },
+      "card_022": {
+        "script": [
+          { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "自由的 Gumayuwei，不想再用玩笑把真話藏起來。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "這次聽起來不像逃跑，像是真的想往前走。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "我喜歡妳。不是因為今天氣氛剛好，是因為我每次搞砸以後，還是想第一個跟妳解釋。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "……你終於說得像個人了。自由可以，但以後不准自由地消失。" },
+          { "type": "narration", "text": "她伸手把你微皺的袖口拉平。那動作很輕，卻像答應了一半。" }
+        ],
+        "effects": { "favorability": 12, "awkwardness": -3, "comedy": 2, "sincerity": 11, "confidence": 8, "social_death": 0, "appetite": 0, "battle": 0 },
+        "next": "ending"
+      },
+      "card_023": {
+        "script": [
+          { "type": "narration", "text": "Gumayuwei 露出蒙娜麗莎式的微笑。那個笑容介於『我懂了』、『我沒懂』和『我快要胃痛』之間。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "你不要用這種美術館等級的微笑面對告白。我看不出你是心動還是中風。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "我是怕我一開口，就不像畫了。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "soft", "text": "你本來就不像畫，你比較像會在畫框裡問還有嗎的人。說吧，我在聽。" },
+          { "type": "narration", "text": "她的吐槽替你拆掉了高深莫測。你終於不用當名畫，可以當一個緊張的人。" }
+        ],
+        "effects": { "favorability": 7, "awkwardness": -2, "comedy": 6, "sincerity": 8, "confidence": 4, "social_death": 0, "appetite": 0, "battle": 0 },
+        "next": "ending"
+      },
+      "card_024": {
+        "script": [
+          { "type": "dialogue", "speaker": "guma", "emotion": "smile", "text": "給我擦皮鞋。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "dots", "text": "……你在告白前講這句？" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "shock", "text": "不是，我的意思是——我想讓妳知道，我很有氣勢。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "tsukkomi", "text": "有。氣勢有，戀愛智商沒有。你如果想告白，現在立刻把霸總關掉，重講。" },
+          { "type": "narration", "text": "空氣被你一腳踢進黑名單邊緣。她沒有走，是因為她想看你有沒有救。" }
+        ],
+        "effects": { "favorability": -5, "awkwardness": 8, "comedy": 7, "sincerity": -2, "confidence": 10, "social_death": 5, "appetite": 0, "battle": 5 },
+        "next": "ending"
+      },
+      "card_025": {
+        "script": [
+          { "type": "dialogue", "speaker": "guma", "emotion": "none", "text": "加餐。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "shock", "text": "現在？這是告白時刻，不是自助吧補菜時間。" },
+          { "type": "dialogue", "speaker": "guma", "emotion": "dots", "text": "我的意思是……我想跟妳有下一餐、下下餐，還有很多次加餐。" },
+          { "type": "dialogue", "speaker": "heroine", "emotion": "laugh", "text": "你把長久關係講得像吃到飽續盤，但我居然聽懂了。" },
+          { "type": "narration", "text": "原始人式告白沒有華麗詞彙，只有很餓、很直、很想繼續見到她的心情。" }
+        ],
+        "effects": { "favorability": 7, "awkwardness": 1, "comedy": 8, "sincerity": 7, "confidence": 2, "social_death": 0, "appetite": 14, "battle": 0 },
+        "next": "ending"
+      }
+    }
+  }
+}

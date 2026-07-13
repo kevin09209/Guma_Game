@@ -1,124 +1,197 @@
 #!/usr/bin/env node
 /* ============================================================
-   validate.js — 遊戲資料完整性驗證（零依賴，node tests/validate.js）
-   ------------------------------------------------------------
-   改動 /data 的任何 JSON 之後必跑。檢查：
-   - JSON 格式、必填欄位、id 唯一性
-   - 場景引用的卡片/女主/下一站/背景圖是否存在
-   - 結局條件引用的數值鍵與卡片是否有效、保底結局契約
-   出錯以非零狀態碼結束（可接 CI）。
+   validate.js — v0.6 資料完整性驗證（零依賴）
    ============================================================ */
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
-const read = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8"));
-
+const read = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8"));
+const exists = (file) => fs.existsSync(path.join(ROOT, file));
 const errors = [];
 const warns = [];
-const err = (msg) => errors.push(msg);
-const warn = (msg) => warns.push(msg);
+const err = (message) => errors.push(message);
+const warn = (message) => warns.push(message);
 
 const STAT_KEYS = ["favorability", "awkwardness", "comedy", "sincerity", "confidence", "social_death", "appetite", "battle"];
 const RARITIES = ["N", "R", "SR", "SSR", "UR"];
 const BGM_MOODS = ["office", "chill", "festive", "romance"];
-// 與 prototype/js/config.js 的 TUTORIAL_HAND 同步（教學手牌必須存在）
 const TUTORIAL_HAND = ["card_001", "card_002", "card_003", "card_004", "card_005"];
 
-let cards, heroines, scenesData, endings;
+let cardsData, heroinesData, scenesData, endingsData, phase2, confession, profilesData, choicesData, emergencyData;
 try {
-  cards = read("data/cards.json").cards;
-  heroines = read("data/heroines.json").heroines;
+  cardsData = read("data/cards.json");
+  heroinesData = read("data/heroines.json");
   scenesData = read("data/scenes.json");
-  endings = read("data/endings.json").endings;
-} catch (e) {
-  console.error(`❌ JSON 解析失敗：${e.message}`);
+  endingsData = read("data/endings.json");
+  phase2 = read("data/scene_card_results_phase2.json");
+  confession = read("data/scene_card_results_v055_confession.json");
+  profilesData = read("data/card_reaction_profiles.json");
+  choicesData = read("data/scene_choices.json");
+  emergencyData = read("data/emergency_endings.json");
+} catch (error) {
+  console.error(`❌ JSON 解析失敗：${error.message}`);
   process.exit(1);
 }
 
-// ---------- 卡片 ----------
+const cards = cardsData.cards || [];
+const heroines = heroinesData.heroines || [];
+const scenes = scenesData.scenes || [];
+const endings = [...(emergencyData.endings || []), ...(endingsData.endings || [])];
 const cardIds = new Set();
-for (const c of cards) {
-  if (cardIds.has(c.id)) err(`cards: 重複的卡片 id ${c.id}`);
-  cardIds.add(c.id);
-  for (const key of ["id", "name", "rarity", "line", "description", "image"]) {
-    if (!c[key]) err(`cards: ${c.id || "(無 id)"} 缺少欄位 ${key}`);
-  }
-  if (!RARITIES.includes(c.rarity)) err(`cards: ${c.id} 稀有度不合法 ${c.rarity}`);
-  if (!Array.isArray(c.tags) || c.tags.length === 0) warn(`cards: ${c.id} 沒有 tags（標籤加成不會作用）`);
-  for (const key of Object.keys(c.effects || {})) {
-    if (!STAT_KEYS.includes(key)) err(`cards: ${c.id} effects 有未知數值 ${key}`);
+const heroineIds = new Set();
+const sceneIds = new Set(scenes.map((scene) => scene.scene_id));
+const endingIds = new Set();
+const validNext = (value) => value === "ending" || sceneIds.has(value);
+
+function checkEffects(effects, where) {
+  if (!effects || typeof effects !== "object") return;
+  for (const [key, value] of Object.entries(effects)) {
+    if (!STAT_KEYS.includes(key)) err(`${where}: 未知數值鍵 ${key}`);
+    if (typeof value !== "number" || !Number.isFinite(value)) err(`${where}: ${key} 必須是有限數字`);
   }
 }
-for (const id of TUTORIAL_HAND) if (!cardIds.has(id)) err(`教學手牌卡片不存在：${id}`);
 
-// ---------- 女主角 ----------
-const heroineIds = new Set(heroines.map((h) => h.id));
-for (const h of heroines) {
-  if (!h.id || !h.name) err(`heroines: 缺 id 或 name`);
-  if (!Array.isArray(h.likes) || !Array.isArray(h.dislikes)) warn(`heroines: ${h.id} 缺 likes/dislikes 標籤`);
+function checkScript(lines, where) {
+  if (!Array.isArray(lines)) {
+    err(`${where}: script 必須是陣列`);
+    return;
+  }
+  lines.forEach((line, index) => {
+    if (!["narration", "dialogue"].includes(line.type)) err(`${where}[${index}]: type 不合法 ${line.type}`);
+    if (line.type === "dialogue" && !line.speaker) err(`${where}[${index}]: dialogue 缺 speaker`);
+    if (typeof line.text !== "string" || !line.text.trim()) err(`${where}[${index}]: 缺 text`);
+  });
 }
 
-// ---------- 場景 ----------
-const sceneIds = new Set(scenesData.scenes.map((s) => s.scene_id));
-const validNext = (n) => n === "ending" || sceneIds.has(n);
-if (!sceneIds.has(scenesData.start)) err(`scenes: start 指向不存在的場景 ${scenesData.start}`);
-
-const checkScriptLines = (lines, where) => {
-  for (const line of lines || []) {
-    if (!["narration", "dialogue"].includes(line.type)) err(`${where}: 劇本行 type 不合法 ${line.type}`);
-    if (line.type === "dialogue" && !line.speaker) err(`${where}: dialogue 缺 speaker`);
-    if (typeof line.text !== "string" || !line.text) err(`${where}: 劇本行缺 text`);
+function checkCardResult(result, where) {
+  if (!result || typeof result !== "object") {
+    err(`${where}: 結果不是物件`);
+    return;
   }
-};
-
-for (const s of scenesData.scenes) {
-  const where = `scenes/${s.scene_id}`;
-  if (!heroineIds.has(s.heroine)) err(`${where}: 女主角不存在 ${s.heroine}`);
-  if (!fs.existsSync(path.join(ROOT, s.background))) err(`${where}: 背景圖不存在 ${s.background}`);
-  if (!s.bgm) warn(`${where}: 沒有 bgm 欄位（會用預設 office）`);
-  else if (!BGM_MOODS.includes(s.bgm)) err(`${where}: bgm 曲風不合法 ${s.bgm}（可用：${BGM_MOODS.join("/")}）`);
-  checkScriptLines(s.intro_script, `${where}/intro`);
-  for (const [cid, r] of Object.entries(s.card_results || {})) {
-    if (!cardIds.has(cid)) err(`${where}: card_results 引用不存在的卡 ${cid}`);
-    if (!validNext(r.next)) err(`${where}/${cid}: next 指向不存在的場景 ${r.next}`);
-    checkScriptLines(r.script, `${where}/${cid}`);
-    if (r.danger) {
-      if (!r.rescue || !Array.isArray(r.rescue.script) || !r.rescue.effects) {
-        err(`${where}/${cid}: danger 結果缺完整的 rescue（script + effects）`);
-      }
+  checkScript(result.script || [], `${where}/script`);
+  checkEffects(result.effects || {}, `${where}/effects`);
+  if (result.next !== undefined && !validNext(result.next)) err(`${where}: next 不合法 ${result.next}`);
+  if (result.danger) {
+    if (!result.rescue) err(`${where}: danger 缺 rescue`);
+    else {
+      checkScript(result.rescue.script || [], `${where}/rescue/script`);
+      checkEffects(result.rescue.effects || {}, `${where}/rescue/effects`);
     }
   }
-  if (!s.fallback || !validNext(s.fallback.next)) err(`${where}: fallback 缺失或 next 不合法`);
-}
-for (const key of Object.keys(scenesData.repeat_reactions || {})) {
-  if (key !== "default" && !cardIds.has(key)) err(`repeat_reactions: 引用不存在的卡 ${key}`);
 }
 
-// ---------- 結局 ----------
-const endingIds = new Set();
-for (const e of endings) {
-  if (endingIds.has(e.ending_id)) err(`endings: 重複的結局 id ${e.ending_id}`);
-  endingIds.add(e.ending_id);
-  if (!["good", "normal", "bad"].includes(e.mood)) err(`endings: ${e.ending_id} mood 不合法 ${e.mood}`);
-  for (const key of Object.keys(e.conditions?.stats || {})) {
-    if (!STAT_KEYS.includes(key)) err(`endings: ${e.ending_id} 條件有未知數值 ${key}`);
-  }
-  for (const cid of Object.keys(e.conditions?.cards || {})) {
-    if (!cardIds.has(cid)) err(`endings: ${e.ending_id} 條件引用不存在的卡 ${cid}`);
-  }
+for (const card of cards) {
+  if (!card.id) err("cards: 卡片缺 id");
+  if (cardIds.has(card.id)) err(`cards: 重複 id ${card.id}`);
+  cardIds.add(card.id);
+  for (const key of ["name", "rarity", "line", "description", "image"]) if (!card[key]) err(`cards/${card.id}: 缺 ${key}`);
+  if (!RARITIES.includes(card.rarity)) err(`cards/${card.id}: 稀有度不合法 ${card.rarity}`);
+  if (!Array.isArray(card.tags) || !card.tags.length) warn(`cards/${card.id}: 沒有 tags`);
+  checkEffects(card.effects || {}, `cards/${card.id}/effects`);
 }
-// 契約：最後一個結局必須無條件（保底），否則可能沒有結局可判
-const last = endings[endings.length - 1];
-if (Object.keys(last.conditions?.stats || {}).length || Object.keys(last.conditions?.cards || {}).length) {
-  err(`endings: 最後一個結局 ${last.ending_id} 必須是無條件的保底結局`);
+TUTORIAL_HAND.forEach((id) => { if (!cardIds.has(id)) err(`教學手牌不存在：${id}`); });
+
+for (const heroine of heroines) {
+  if (!heroine.id || !heroine.name) err("heroines: 缺 id 或 name");
+  if (heroineIds.has(heroine.id)) err(`heroines: 重複 id ${heroine.id}`);
+  heroineIds.add(heroine.id);
+  if (!Array.isArray(heroine.likes) || !Array.isArray(heroine.dislikes)) warn(`heroines/${heroine.id}: 缺 likes/dislikes`);
 }
 
-// ---------- 報告 ----------
-warns.forEach((w) => console.log(`⚠️  ${w}`));
+if (!sceneIds.has(scenesData.start)) err(`scenes: start 不存在 ${scenesData.start}`);
+for (const scene of scenes) {
+  const where = `scenes/${scene.scene_id}`;
+  if (!heroineIds.has(scene.heroine)) err(`${where}: 女主不存在 ${scene.heroine}`);
+  if (!exists(scene.background)) err(`${where}: 背景不存在 ${scene.background}`);
+  if (!BGM_MOODS.includes(scene.bgm || "office")) err(`${where}: bgm 不合法 ${scene.bgm}`);
+  checkScript(scene.intro_script || [], `${where}/intro`);
+  Object.entries(scene.card_results || {}).forEach(([cardId, result]) => {
+    if (!cardIds.has(cardId)) err(`${where}: 引用不存在卡片 ${cardId}`);
+    checkCardResult(result, `${where}/${cardId}`);
+  });
+  if (!scene.fallback || !validNext(scene.fallback.next)) err(`${where}: fallback 缺失或 next 不合法`);
+}
+
+function validateSupplement(data, name) {
+  for (const [sceneId, results] of Object.entries(data.scene_card_results || {})) {
+    if (!sceneIds.has(sceneId)) err(`${name}: 場景不存在 ${sceneId}`);
+    for (const [cardId, result] of Object.entries(results || {})) {
+      if (!cardIds.has(cardId)) err(`${name}/${sceneId}: 卡片不存在 ${cardId}`);
+      checkCardResult(result, `${name}/${sceneId}/${cardId}`);
+    }
+  }
+}
+validateSupplement(phase2, "phase2");
+validateSupplement(confession, "v055_confession");
+
+const profiles = profilesData.profiles || {};
+for (const cardId of cardIds) {
+  const profile = profiles[cardId];
+  if (!profile) err(`reaction_profiles: ${cardId} 缺專屬女主反應`);
+  else {
+    if (!profile.heroine_text) err(`reaction_profiles/${cardId}: 缺 heroine_text`);
+    if (!profile.note) err(`reaction_profiles/${cardId}: 缺 note`);
+    checkEffects(profile.score_bias || {}, `reaction_profiles/${cardId}/score_bias`);
+  }
+}
+for (const cardId of Object.keys(profiles)) if (!cardIds.has(cardId)) err(`reaction_profiles: 多出不存在卡片 ${cardId}`);
+
+const choices = choicesData.choices || {};
+for (const scene of scenes) {
+  const choice = choices[scene.scene_id];
+  if (!choice) {
+    warn(`scene_choices: ${scene.scene_id} 沒有選擇題`);
+    continue;
+  }
+  if (!choice.question) err(`scene_choices/${scene.scene_id}: 缺 question`);
+  if (!Array.isArray(choice.options) || choice.options.length < 2) err(`scene_choices/${scene.scene_id}: 至少需要 2 個 options`);
+  const optionIds = new Set();
+  for (const option of choice.options || []) {
+    if (!option.id || optionIds.has(option.id)) err(`scene_choices/${scene.scene_id}: option id 缺失或重複 ${option.id}`);
+    optionIds.add(option.id);
+    if (!option.label || !option.player_line || !option.heroine_reply) err(`scene_choices/${scene.scene_id}/${option.id}: 缺 label/player_line/heroine_reply`);
+    checkEffects(option.effects || {}, `scene_choices/${scene.scene_id}/${option.id}/effects`);
+    for (const key of ["set_flags", "remove_flags", "requires_flags", "blocks_flags"]) {
+      if (option[key] !== undefined && !Array.isArray(option[key])) err(`scene_choices/${scene.scene_id}/${option.id}: ${key} 必須是陣列`);
+    }
+  }
+  for (const line of choice.memory_lines || []) {
+    if (!line.text || !line.speaker) err(`scene_choices/${scene.scene_id}/memory_lines: 缺 speaker/text`);
+    if (!Array.isArray(line.requires_flags || [])) err(`scene_choices/${scene.scene_id}/memory_lines: requires_flags 必須是陣列`);
+  }
+}
+for (const sceneId of Object.keys(choices)) if (!sceneIds.has(sceneId)) err(`scene_choices: 多出不存在場景 ${sceneId}`);
+
+for (const ending of endings) {
+  if (!ending.ending_id || endingIds.has(ending.ending_id)) err(`endings: id 缺失或重複 ${ending.ending_id}`);
+  endingIds.add(ending.ending_id);
+  if (!["good", "normal", "bad"].includes(ending.mood)) err(`endings/${ending.ending_id}: mood 不合法`);
+  checkEffects(Object.fromEntries(Object.keys(ending.conditions?.stats || {}).map((key) => [key, 0])), `endings/${ending.ending_id}/conditions`);
+  for (const cardId of Object.keys(ending.conditions?.cards || {})) if (!cardIds.has(cardId)) err(`endings/${ending.ending_id}: 卡片不存在 ${cardId}`);
+}
+const normalEndings = endingsData.endings || [];
+const fallbackEnding = normalEndings[normalEndings.length - 1];
+if (!fallbackEnding || Object.keys(fallbackEnding.conditions?.stats || {}).length || Object.keys(fallbackEnding.conditions?.cards || {}).length) {
+  err("endings: 主結局最後一項必須是無條件保底");
+}
+
+// 合併主場景、補充檔與反應人格後，每個場景都必須可覆蓋所有卡。
+for (const scene of scenes) {
+  const explicit = new Set([
+    ...Object.keys(scene.card_results || {}),
+    ...Object.keys(phase2.scene_card_results?.[scene.scene_id] || {}),
+    ...Object.keys(confession.scene_card_results?.[scene.scene_id] || {}),
+  ]);
+  for (const cardId of cardIds) {
+    if (!explicit.has(cardId) && !profiles[cardId]) err(`矩陣缺漏：${scene.scene_id} × ${cardId}`);
+  }
+}
+
+warns.forEach((message) => console.log(`⚠️  ${message}`));
 if (errors.length) {
-  errors.forEach((e) => console.error(`❌ ${e}`));
+  errors.forEach((message) => console.error(`❌ ${message}`));
   console.error(`\n驗證失敗：${errors.length} 個錯誤`);
   process.exit(1);
 }
-console.log(`✅ 資料驗證通過：卡片 ${cards.length}、場景 ${scenesData.scenes.length}、結局 ${endings.length}、女主角 ${heroines.length}${warns.length ? `（${warns.length} 個警告）` : ""}`);
+console.log(`✅ v0.6 資料驗證通過：卡片 ${cards.length}、場景 ${scenes.length}、結局 ${endings.length}、女主角 ${heroines.length}${warns.length ? `（${warns.length} 個警告）` : ""}`);

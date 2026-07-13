@@ -1,0 +1,155 @@
+{
+  "_comment": "每張卡的女主專屬反應人格。系統產生全場景保底回覆時會套用這裡，確保每張卡不是同一套模板。",
+  "profiles": {
+    "card_001": {
+      "emotion": "tsukkomi",
+      "heroine_text": "你又進入問號模式了。在{place}用這招，我會把它解讀成『需要我把{prompt}翻成幼幼班版本』。",
+      "note": "她一邊吐槽，一邊真的把情況重新講了一次，等於幫你把尷尬轉成可愛的當機。",
+      "score_bias": { "comedy": 1, "awkwardness": -1 }
+    },
+    "card_002": {
+      "emotion": "smile",
+      "heroine_text": "你說不急的時候，臉上那個假裝掌控全局的表情很欠揍。但在{prompt}裡，居然有一點穩。",
+      "note": "她沒有催你，反而把節奏放慢，像是在看你到底能裝鎮定多久。",
+      "score_bias": { "confidence": 2, "favorability": 1 }
+    },
+    "card_003": {
+      "emotion": "laugh",
+      "heroine_text": "你每次喊『我還沒上車』都像被人生丟包。這裡是{place}，不是客運站，但我承認很好笑。",
+      "note": "附近的人被你吸引過來，她想裝不認識你，嘴角卻先投降了。",
+      "score_bias": { "comedy": 2, "social_death": 2 }
+    },
+    "card_004": {
+      "emotion": "smile",
+      "heroine_text": "你問『還有嗎』的時候，眼神比上班回信認真十倍。{prompt}被你講得像續碗任務。",
+      "note": "她嘴上嫌你貪吃，身體卻開始思考附近還有什麼能餵你。",
+      "score_bias": { "appetite": 3, "favorability": 1 }
+    },
+    "card_005": {
+      "emotion": "soft",
+      "heroine_text": "你沉默到像一尊公共藝術。偏偏在{place}，這種不說話反而比亂講話安全。",
+      "note": "她沒有急著拆穿你，只是看著你石化，語氣意外放軟。",
+      "score_bias": { "sincerity": 2, "awkwardness": -2 }
+    },
+    "card_006": {
+      "emotion": "tsukkomi",
+      "heroine_text": "你這個『蛤』非常有層次：三分聽不懂，三分裝傻，四分完全沒準備好面對{prompt}。",
+      "note": "她敲了敲空氣，像是在重新啟動你的理解能力。",
+      "score_bias": { "comedy": 2, "awkwardness": 1 }
+    },
+    "card_007": {
+      "emotion": "laugh",
+      "heroine_text": "你不要用那張傻眼白貓臉看我。在{place}賣萌是犯規，但我先笑完再處罰你。",
+      "note": "她的防線明顯鬆掉，甚至開始把你當成一隻不太聰明但可以帶走的貓。",
+      "score_bias": { "favorability": 2, "comedy": 2, "awkwardness": -1 }
+    },
+    "card_008": {
+      "emotion": "dots",
+      "heroine_text": "你融化了？在{prompt}面前直接變成臭臭泥，某種程度上很誠實，但也很想讓人拿拖把。",
+      "note": "她退半步確認你還能對話，然後決定把這次當成社交電量不足。",
+      "score_bias": { "comedy": 2, "awkwardness": 2 }
+    },
+    "card_009": {
+      "emotion": "dots",
+      "heroine_text": "你這句『怎麼跟我鬥』最好只拿去跟影印機講。在{place}對我講，勇氣有，求生欲沒有。",
+      "note": "她的笑容消失半秒，空氣突然變成績效面談模式。",
+      "score_bias": { "confidence": 3, "awkwardness": 3, "favorability": -2 }
+    },
+    "card_010": {
+      "emotion": "shock",
+      "heroine_text": "你居然開始計畫通り？平常會議都沒這麼有邏輯，結果{prompt}反而進入戰術模式。",
+      "note": "她重新評估你：也許你不是沒救，只是把腦力用在奇怪地方。",
+      "score_bias": { "confidence": 3, "comedy": 1 }
+    },
+    "card_011": {
+      "emotion": "laugh",
+      "heroine_text": "Tom 貓布偶裝是怎樣？你在{place}準備這個，代表你不是臨時失控，是預謀失控。",
+      "note": "她笑到差點忘記原本要問什麼，現場正式從戀愛模擬變成卡通短片。",
+      "score_bias": { "comedy": 3, "social_death": 1 }
+    },
+    "card_012": {
+      "emotion": "tsukkomi",
+      "heroine_text": "Jerry 鼠布偶裝還露出勝利臉？你是不是以為在{prompt}裡只要夠小隻就不用負責？",
+      "note": "她抓到你想逃避，但因為畫面太荒謬，懲罰先延後。",
+      "score_bias": { "comedy": 2, "awkwardness": -1 }
+    },
+    "card_013": {
+      "emotion": "dots",
+      "heroine_text": "你現在像一盆紅色植物站在{place}。我不知道該跟你說話，還是幫你澆水。",
+      "note": "她觀察你三秒，決定把這招登記為『低攻擊性怪異行為』。",
+      "score_bias": { "comedy": 2, "sincerity": 1 }
+    },
+    "card_014": {
+      "emotion": "tsukkomi",
+      "heroine_text": "什麼 40:0？你連{prompt}都能講成比賽戰績，人生是不是只有比分沒有對話？",
+      "note": "她吐槽得很快，但也被你的莫名勝負欲點到笑穴。",
+      "score_bias": { "battle": 3, "comedy": 2 }
+    },
+    "card_015": {
+      "emotion": "tsukkomi",
+      "heroine_text": "你鼻子壞掉跟{prompt}有什麼關係？尷尬不是味道，是你現在正在製造的氣候。",
+      "note": "她用一句話把你打回現實，但語氣不是真的生氣。",
+      "score_bias": { "comedy": 2, "awkwardness": 1 }
+    },
+    "card_016": {
+      "emotion": "shock",
+      "heroine_text": "牌妹有溫體？你在{place}講這種話，我很難判斷要報警還是報 HR。",
+      "note": "她把距離拉開半步，決定先確認你不是被奇怪廣告附身。",
+      "score_bias": { "social_death": 4, "awkwardness": 3, "favorability": -2 }
+    },
+    "card_017": {
+      "emotion": "laugh",
+      "heroine_text": "你在{prompt}裡做空中拉桿？很好，這動作完全沒必要，但完成度居然不低。",
+      "note": "她忍不住替你比了個兩分算進，雖然這不是籃球場。",
+      "score_bias": { "battle": 4, "comedy": 2, "confidence": 1 }
+    },
+    "card_018": {
+      "emotion": "shock",
+      "heroine_text": "紅色怒火覺醒可以，但你先說你在{place}到底要覺醒什麼？排隊耐心嗎？",
+      "note": "她被你的熱血嚇到，又因為太像少年漫畫而笑了出來。",
+      "score_bias": { "battle": 3, "comedy": 3, "awkwardness": 1 }
+    },
+    "card_019": {
+      "emotion": "tsukkomi",
+      "heroine_text": "不要在{place}領域展開。尤其是{prompt}已經夠複雜了，你再展開我會先撤退。",
+      "note": "空氣被你喊得很像有特效，但她只想把你按回正常人模式。",
+      "score_bias": { "comedy": 3, "social_death": 2, "battle": 2 }
+    },
+    "card_020": {
+      "emotion": "soft",
+      "heroine_text": "教練你想打副本是吧？如果副本名稱是{prompt}，那我可以暫時當你的隊友。",
+      "note": "她難得沒有立刻吐槽，反而接住了你的中二設定。",
+      "score_bias": { "favorability": 3, "sincerity": 2, "battle": 2 }
+    },
+    "card_021": {
+      "emotion": "smile",
+      "heroine_text": "永不放棄 Gumayuwei 聽起來很吵，但在{prompt}裡，這種笨拙的認真不算壞。",
+      "note": "她看著你那種毫無根據的熱血，語氣比剛才柔和一點。",
+      "score_bias": { "favorability": 2, "confidence": 2, "sincerity": 1 }
+    },
+    "card_022": {
+      "emotion": "smile",
+      "heroine_text": "自由 Gumayuwei 很好，但自由不等於在{place}隨便失控。你要自由，也要負責。",
+      "note": "她嘴上管你，卻沒有否定你的節奏，像是在陪你把自由拉回人間。",
+      "score_bias": { "confidence": 3, "favorability": 2 }
+    },
+    "card_023": {
+      "emotion": "dots",
+      "heroine_text": "你這個蒙娜麗莎微笑在{place}很微妙。我看不出你是在心動、胃痛，還是在憋笑。",
+      "note": "她盯著你看了很久，最後決定先把你歸類為現代藝術。",
+      "score_bias": { "sincerity": 2, "comedy": 1, "awkwardness": -1 }
+    },
+    "card_024": {
+      "emotion": "dots",
+      "heroine_text": "給你擦皮鞋？你在{prompt}講這句，已經不是霸總，是需要重新社會化。",
+      "note": "她的眼神從吐槽升級成警告，這張卡很有氣勢，也很危險。",
+      "score_bias": { "confidence": 3, "awkwardness": 4, "favorability": -4 }
+    },
+    "card_025": {
+      "emotion": "laugh",
+      "heroine_text": "加餐原始人出現了。你在{place}退化成這樣，反而比硬裝帥自然很多。",
+      "note": "她笑著接受這個低文明但高真誠的要求，並開始尋找下一個可以投餵你的東西。",
+      "score_bias": { "appetite": 4, "comedy": 2, "favorability": 1 }
+    }
+  }
+}
