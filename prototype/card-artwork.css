@@ -1,0 +1,206 @@
+/* ============================================================
+   v0.6.2 正式卡片圖集顯示
+   25 張完整卡面共用一張 5×5 WebP atlas。
+   ============================================================ */
+
+.card-atlas-crop,
+.formal-card-art,
+.gacha-formal-card,
+.collection-formal-art,
+.swap-replacement-art {
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 500% 500%;
+  background-origin: border-box;
+  background-clip: border-box;
+}
+
+.card-accessible-text {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.formal-card-button {
+  position: relative;
+  width: 180px;
+  aspect-ratio: 3 / 4;
+  border: 0;
+  border-radius: 13px;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
+.formal-card-button .formal-card-art {
+  width: 100%;
+  height: 100%;
+  border-radius: 13px;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.48));
+  transition: filter 160ms ease;
+}
+
+.formal-card-button:hover {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.formal-card-button:hover .formal-card-art {
+  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.65)) brightness(1.06);
+}
+
+.hand-small .formal-card-button {
+  width: 150px;
+}
+
+.hand .formal-card-button.selected-card,
+.hand-small .formal-card-button.selected-card {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.hand .formal-card-button.selected-card .formal-card-art,
+.hand-small .formal-card-button.selected-card .formal-card-art {
+  filter:
+    drop-shadow(0 0 8px rgba(255, 211, 77, 0.85))
+    drop-shadow(0 18px 28px rgba(0, 0, 0, 0.62));
+}
+
+.cutin-card.card-atlas-crop {
+  aspect-ratio: 3 / 4;
+  width: 330px;
+  border: 0;
+  background-color: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 0 26px rgba(255, 211, 77, 0.38)) drop-shadow(0 26px 42px rgba(0, 0, 0, 0.72));
+}
+
+.formal-gacha-result {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.gacha-formal-card,
+.collection-formal-art,
+.swap-replacement-art {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+}
+
+.gacha-result-meta,
+.collection-card-details {
+  min-height: 34px;
+  padding: 0 4px 3px;
+  text-align: center;
+  color: #f2f0ea;
+}
+
+.gacha-result-meta strong,
+.collection-card-details strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.gacha-result-meta .new-label {
+  margin-top: 3px;
+  font-size: 10px;
+}
+
+.formal-collection-card {
+  min-height: 0;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.formal-collection-card.unlocked {
+  opacity: 1;
+}
+
+.formal-collection-card.locked {
+  opacity: 0.55;
+  filter: none;
+}
+
+.collection-card-back {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 211, 77, 0.24);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 211, 77, 0.13), transparent 34%),
+    linear-gradient(145deg, #242238, #10101c);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.collection-card-back span {
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.collection-card-back b {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+}
+
+.collection-card-details small {
+  display: block;
+  margin-top: 3px;
+  color: #9a97a8;
+  font-size: 10px;
+}
+
+.collection-card-details .collection-tags {
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.collection-card-details .collection-tags span {
+  font-size: 9px;
+  padding: 1px 6px;
+}
+
+.swap-card-front {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.swap-replacement-art {
+  height: 100%;
+}
+
+.swap-flip-card {
+  width: 180px;
+  height: 240px;
+}
+
+.gacha-results.single {
+  max-height: 360px;
+}
+
+.gacha-results.single .formal-gacha-result {
+  width: 220px;
+}
+
+@media (max-height: 760px) {
+  .formal-card-button { width: 150px; }
+  .hand-small .formal-card-button { width: 132px; }
+  .cutin-card.card-atlas-crop { width: 280px; }
+}

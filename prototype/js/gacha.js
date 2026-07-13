@@ -1,13 +1,13 @@
 /* ============================================================
    gacha.js — 抽卡經濟、卡片收藏、結局圖鑑
    ------------------------------------------------------------
-   這個模組管「跨局持久」的收集系統；單局的手牌與數值在 main.js。
+   v0.6.2：抽卡與收藏頁統一顯示正式卡面。
    ============================================================ */
 
 import { GACHA_RATES, SHARD_REWARD, RARITY_ORDER } from "./config.js";
 import * as store from "./storage.js";
 import { DATA, getCard } from "./data.js";
-import { $, esc, rarityBadge } from "./ui.js";
+import { $, esc, rarityBadge, applyCardAtlas } from "./ui.js";
 
 export function pickRarity(forceMinRarity = null) {
   const rates = forceMinRarity
@@ -85,14 +85,15 @@ export function renderGachaResults(results, box) {
   box.innerHTML = "";
   results.forEach((result, index) => {
     const element = document.createElement("div");
-    element.className = `gacha-card ${result.isNew ? "new" : ""}`;
+    element.className = `gacha-card formal-gacha-result ${result.isNew ? "new" : ""}`;
     element.style.animationDelay = `${index * 0.035}s`;
     element.innerHTML = `
-      ${rarityBadge(result.card, "rarity-label")}
-      <h3>${esc(result.card.name)}</h3>
-      <p>「${esc(result.card.line)}」</p>
-      <p>${esc(result.card.description)}</p>
-      <div class="new-label">${result.isNew ? "NEW！加入收藏" : `重複卡 → 迷因碎片 +${result.shardGain}`}</div>`;
+      <div class="gacha-formal-card"></div>
+      <div class="gacha-result-meta">
+        <strong>${esc(result.card.name)}</strong>
+        <div class="new-label">${result.isNew ? "NEW！加入收藏" : `重複卡 → 迷因碎片 +${result.shardGain}`}</div>
+      </div>`;
+    applyCardAtlas(element.querySelector(".gacha-formal-card"), result.card);
     box.appendChild(element);
   });
 }
@@ -112,11 +113,20 @@ export function renderCollection() {
   DATA.cards.forEach((card) => {
     const unlocked = owned.includes(card.id);
     const element = document.createElement("div");
-    element.className = `collection-card ${unlocked ? "" : "locked"}`;
-    element.innerHTML = unlocked
-      ? `${rarityBadge(card)}<h3>${esc(card.name)}</h3><p>「${esc(card.line)}」</p><p>${esc(card.description)}</p>
-         <div class="collection-tags">${(card.tags || []).slice(0, 4).map((tag) => `<span>${esc(tag)}</span>`).join("")}</div>`
-      : `${rarityBadge(card)}<h3>？？？？？</h3><p>尚未抽到這張卡。</p><p>提示：${esc(card.rarity)}｜${esc((card.type || ["未知"])[0])}</p>`;
+    element.className = `collection-card formal-collection-card ${unlocked ? "unlocked" : "locked"}`;
+    if (unlocked) {
+      element.innerHTML = `
+        <div class="collection-formal-art"></div>
+        <div class="collection-card-details">
+          <strong>${esc(card.name)}</strong>
+          <div class="collection-tags">${(card.tags || []).slice(0, 4).map((tag) => `<span>${esc(tag)}</span>`).join("")}</div>
+        </div>`;
+      applyCardAtlas(element.querySelector(".collection-formal-art"), card);
+    } else {
+      element.innerHTML = `
+        <div class="collection-card-back"><span>${esc(card.rarity)}</span><b>LOCKED</b></div>
+        <div class="collection-card-details"><strong>？？？？？</strong><small>尚未抽到這張卡</small></div>`;
+    }
     box.appendChild(element);
   });
 }
