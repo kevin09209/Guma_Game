@@ -1,13 +1,17 @@
 /* ============================================================
    ui.js — 共用 UI 工具
    ------------------------------------------------------------
-   v0.6.2：正式 25 張卡片改由單一 5×5 atlas 顯示。
+   v0.6.3：
+   - 正式 25 張卡片由單一 5×5 高解析 atlas 顯示。
+   - atlas URL 加版本號，避免瀏覽器沿用舊低解析快取。
+   - 桌面端不再把整個 1280×720 舞台放大，避免文字與卡圖一起模糊。
    ============================================================ */
 
 import { STAGE_W, STAGE_H } from "./config.js";
 import { getCard } from "./data.js";
 
-const CARD_ATLAS_URL = "../assets/cards/cards_atlas.webp";
+const CARD_ATLAS_VERSION = "20260713-hq-3750x5000";
+const CARD_ATLAS_URL = `../assets/cards/cards_atlas.webp?v=${CARD_ATLAS_VERSION}`;
 const CARD_ATLAS_COLUMNS = 5;
 const CARD_ATLAS_ROWS = 5;
 
@@ -17,8 +21,12 @@ export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export function fitStage() {
-  const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
-  $("stage").style.transform = `translate(-50%, -50%) scale(${scale})`;
+  const viewportScale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  // 放大固定解析度舞台會使所有文字與圖片一起被瀏覽器插值，桌面端固定最高 1:1 顯示。
+  const scale = Math.min(1, viewportScale);
+  const stage = $("stage");
+  stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  stage.style.backfaceVisibility = "hidden";
 }
 
 export const rarityBadge = (card, extraClass = "") =>
@@ -43,6 +51,7 @@ export function applyCardAtlas(element, card) {
   element.style.backgroundSize = `${CARD_ATLAS_COLUMNS * 100}% ${CARD_ATLAS_ROWS * 100}%`;
   element.style.backgroundPosition = `${x}% ${y}%`;
   element.style.backgroundRepeat = "no-repeat";
+  element.style.imageRendering = "auto";
   element.setAttribute("role", "img");
   element.setAttribute("aria-label", `${card.rarity} 卡片：${card.name}`);
 }
